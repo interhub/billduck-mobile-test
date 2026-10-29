@@ -1,0 +1,50 @@
+import {useFonts} from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
+import {useEffect} from 'react';
+import {FONT_NAME} from '@/src/constants/FONT_NAME';
+import {resolveErrorKind} from '@/src/utils/errors/resolveErrorKind';
+import {logger} from '@/src/utils/logger/logger';
+import {LOG_NAME, LOG_TYPE} from '@/src/utils/logger/LOG_NAME';
+
+const FONT_FILES = {
+  [FONT_NAME.UNBOUNDED_SEMIBOLD]: require('@/assets/fonts/Unbounded-SemiBold.ttf'),
+  [FONT_NAME.GEIST_REGULAR]: require('@/assets/fonts/Geist-Regular.ttf'),
+  [FONT_NAME.GEIST_MEDIUM]: require('@/assets/fonts/Geist-Medium.ttf'),
+  [FONT_NAME.GEIST_MONO_REGULAR]: require('@/assets/fonts/GeistMono-Regular.ttf'),
+  [FONT_NAME.GEIST_MONO_MEDIUM]: require('@/assets/fonts/GeistMono-Medium.ttf')
+};
+
+/**
+ * Holds the splash screen until the fonts are loaded; returns true once the app can draw its
+ * first screen. The language is chosen before the first render, in App.tsx.
+ */
+export const useInitialAppLoading = (): boolean => {
+  const [areFontsLoaded, fontError] = useFonts(FONT_FILES);
+  const isReady = areFontsLoaded || fontError !== null;
+  useEffect(() => {
+    if (!fontError) {
+      return;
+    }
+    logger.e(LOG_NAME.error_log, {
+      type: LOG_TYPE.load_fonts,
+      error_kind: resolveErrorKind(fontError)
+    });
+  }, [fontError]);
+  useEffect(() => {
+    if (!isReady) {
+      return;
+    }
+    const hideSplash = async () => {
+      try {
+        await SplashScreen.hideAsync();
+      } catch (error) {
+        logger.w(LOG_NAME.warning_log, {
+          type: LOG_TYPE.hide_splash,
+          error_kind: resolveErrorKind(error)
+        });
+      }
+    };
+    void hideSplash();
+  }, [isReady]);
+  return isReady;
+};
