@@ -1,0 +1,14 @@
+node_modules/
+ios/
+android/
+.expo/
+builds/
+video/
+coverage/
+assets/
+docs/
+.claude/
+.idea/
+mobile-engineer-candidate-kit/
+package-lock.json
+*.md
