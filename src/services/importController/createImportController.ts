@@ -7,8 +7,9 @@ import {
 import {ImportDraft, ImportOutcomeKind, INITIAL_IMPORT_STATE} from '@/src/stores/importStore';
 import {ApiError, ImportJob} from '@/src/types/importApi';
 import {ImportOperation, ImportPhase, PendingCleanup} from '@/src/types/importOperation';
-import {ERROR_KIND} from '@/src/utils/errors/resolveErrorKind';
+import {ERROR_KIND, resolveErrorKind} from '@/src/utils/errors/resolveErrorKind';
 import {buildServerFileName} from '@/src/utils/files/buildServerFileName';
+import {canAddStatement} from '@/src/utils/import/canAddStatement';
 import {
   checkStatementFile,
   checkStatementSize,
@@ -718,14 +719,7 @@ export const createImportController = ({
     await sendNew(draft, idempotencyKey, serverFileName);
   };
 
-  /** "Add statement" works when nothing is stored, or the stored statement is ready or failed. */
-  const canAddStatement = (): boolean => {
-    const {operation, draft} = state();
-    if (draft?.phase === 'replacing_previous') {
-      return false;
-    }
-    return !operation || operation.phase === 'ready' || operation.phase === 'failed';
-  };
+  const isAddingAllowed = (): boolean => canAddStatement(state().operation, state().draft);
 
   const rejectDraft = (operationId: string, reason: STATEMENT_REJECTION, sizeBytes: number) => {
     files.removeCopy(operationId);
@@ -780,7 +774,7 @@ export const createImportController = ({
    * file was chosen (the draft then shows the verdict), false when the person cancelled.
    */
   const pickFile = async (): Promise<boolean> => {
-    if (runtime.isPicking || !canAddStatement() || state().draft) {
+    if (runtime.isPicking || !isAddingAllowed() || state().draft) {
       return false;
     }
     runtime.isPicking = true;
@@ -828,7 +822,7 @@ export const createImportController = ({
     ) {
       return;
     }
-    if (!canAddStatement()) {
+    if (!isAddingAllowed()) {
       return;
     }
     runtime.isSending = true;
@@ -1138,14 +1132,22 @@ export const createImportController = ({
 
   /** Reads the stored operation at launch and removes every file copy it does not reference. */
   const restore = async () => {
-    const snapshot = await repository.load();
-    const keep = snapshot.operation ? [snapshot.operation.operationId] : [];
-    files.removeAllExcept(keep);
-    store.setState({
-      operation: snapshot.operation,
-      pendingCleanups: snapshot.pendingCleanups,
-      isRestored: true
-    });
+    try {
+      const snapshot = await repository.load();
+      const keep = snapshot.operation ? [snapshot.operation.operationId] : [];
+      files.removeAllExcept(keep);
+      store.setState({
+        operation: snapshot.operation,
+        pendingCleanups: snapshot.pendingCleanups,
+        isRestored: true
+      });
+    } catch (error) {
+      logger.e(LOG_NAME.error_log, {
+        type: LOG_TYPE.restore_operation,
+        error_kind: resolveErrorKind(error)
+      });
+      store.setState({isRestored: true});
+    }
   };
 
   /** Continues a stored operation after a launch: lookups and polls only, never a POST. */
@@ -1202,7 +1204,6 @@ export const createImportController = ({
   return {
     restore,
     resume,
-    canAddStatement,
     pickFile,
     send,
     cancelDraft,

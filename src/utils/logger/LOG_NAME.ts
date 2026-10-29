@@ -29,5 +29,7 @@ export enum LOG_TYPE {
   // Hiding the native splash screen
   hide_splash = 'hide_splash',
   // Painting the native root view in the theme background
-  system_background = 'system_background'
+  system_background = 'system_background',
+  // A call to the mock's test routes from the diagnostics screen
+  mock_control = 'mock_control'
 }

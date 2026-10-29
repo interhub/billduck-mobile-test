@@ -2,6 +2,8 @@ import {useFonts} from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import {useEffect} from 'react';
 import {FONT_NAME} from '@/src/constants/FONT_NAME';
+import {importController} from '@/src/services/importController/importController';
+import {useImportStore} from '@/src/stores/importStore';
 import {resolveErrorKind} from '@/src/utils/errors/resolveErrorKind';
 import {logger} from '@/src/utils/logger/logger';
 import {LOG_NAME, LOG_TYPE} from '@/src/utils/logger/LOG_NAME';
@@ -15,12 +17,16 @@ const FONT_FILES = {
 };
 
 /**
- * Holds the splash screen until the fonts are loaded; returns true once the app can draw its
- * first screen. The language is chosen before the first render, in App.tsx.
+ * Holds the splash screen until the fonts are loaded and the stored import is read, then lets
+ * the controller continue that import. The language is chosen before the first render, in App.tsx.
  */
 export const useInitialAppLoading = (): boolean => {
   const [areFontsLoaded, fontError] = useFonts(FONT_FILES);
-  const isReady = areFontsLoaded || fontError !== null;
+  const isRestored = useImportStore((state) => state.isRestored);
+  const isReady = isRestored && (areFontsLoaded || fontError !== null);
+  useEffect(() => {
+    void importController.restore();
+  }, []);
   useEffect(() => {
     if (!fontError) {
       return;
@@ -34,7 +40,7 @@ export const useInitialAppLoading = (): boolean => {
     if (!isReady) {
       return;
     }
-    const hideSplash = async () => {
+    const start = async () => {
       try {
         await SplashScreen.hideAsync();
       } catch (error) {
@@ -43,8 +49,9 @@ export const useInitialAppLoading = (): boolean => {
           error_kind: resolveErrorKind(error)
         });
       }
+      await importController.resume();
     };
-    void hideSplash();
+    void start();
   }, [isReady]);
   return isReady;
 };
