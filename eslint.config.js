@@ -56,7 +56,7 @@ module.exports = defineConfig([
     }
   },
   {
-    files: ['jest.setup.js', 'tests/**/*.js', 'tests/**/*.mjs'],
+    files: ['jest.setup.js', 'jest.globalSetup.js', 'tests/**/*.js', 'tests/**/*.mjs'],
     languageOptions: {globals: {...globals.jest, ...globals.node}}
   },
   {
@@ -67,6 +67,7 @@ module.exports = defineConfig([
     files: [
       'src/hooks/sensors/useAppStateWatcher.ts',
       'src/components/ui/TextLine.tsx',
+      '**/__tests__/**',
       'src/navigation/hooks/useAppNavigation.ts'
     ],
     rules: {'no-restricted-imports': 'off'}
