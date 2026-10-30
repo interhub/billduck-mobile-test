@@ -85,6 +85,19 @@ const describeForScreenReader = (eventText: string, details: string): string => 
   return `${eventText}. ${details}`;
 };
 
+type TimelineRailProps = {
+  isLast: boolean;
+};
+
+/** The line from a row's dot down to the next row; the last row has none. */
+const TimelineRail = ({isLast}: TimelineRailProps) => {
+  const {styles} = useResponseTimelineStyles();
+  if (isLast) {
+    return null;
+  }
+  return <View style={styles.rail} />;
+};
+
 type TimelineRowProps = {
   entry: TimelineEntry;
   isLast: boolean;
@@ -97,12 +110,11 @@ const TimelineRow = ({entry, isLast}: TimelineRowProps) => {
   const eventText = describeEvent(entry, t);
   const details = describeDetails(entry, t);
   const accessibilityLabel = describeForScreenReader(eventText, details);
-  const rail = isLast ? null : <View style={styles.rail} />;
   return (
     <View style={styles.row} accessible accessibilityLabel={accessibilityLabel}>
       <View style={styles.marker}>
         <View style={[styles.dot, {backgroundColor: toneColor}]} />
-        {rail}
+        <TimelineRail isLast={isLast} />
       </View>
       <View style={styles.texts}>
         <TextLine variant="label">{eventText}</TextLine>
@@ -114,6 +126,23 @@ const TimelineRow = ({entry, isLast}: TimelineRowProps) => {
   );
 };
 
+type TimelineRowsProps = {
+  entries: TimelineEntry[];
+  emptyText: string;
+};
+
+/** The rows newest first, or the caption while there is nothing to show yet. */
+const TimelineRows = ({entries, emptyText}: TimelineRowsProps) => {
+  if (entries.length === 0) {
+    return <TextLine variant="caption">{emptyText}</TextLine>;
+  }
+  const newestFirst = [...entries].reverse();
+  const rows = newestFirst.map((entry, index) => (
+    <TimelineRow key={entry.id} entry={entry} isLast={index === newestFirst.length - 1} />
+  ));
+  return <>{rows}</>;
+};
+
 type ResponseTimelineProps = {
   entries: TimelineEntry[];
   emptyText: string;
@@ -123,14 +152,9 @@ type ResponseTimelineProps = {
 /** Every server answer and every failed attempt, newest first; nothing is hidden or merged away. */
 export const ResponseTimeline = ({entries, emptyText, testID}: ResponseTimelineProps) => {
   const {styles} = useResponseTimelineStyles();
-  const newestFirst = [...entries].reverse();
-  const rows = newestFirst.map((entry, index) => (
-    <TimelineRow key={entry.id} entry={entry} isLast={index === newestFirst.length - 1} />
-  ));
-  const content = rows.length > 0 ? rows : <TextLine variant="caption">{emptyText}</TextLine>;
   return (
     <View style={styles.list} testID={testID}>
-      {content}
+      <TimelineRows entries={entries} emptyText={emptyText} />
     </View>
   );
 };

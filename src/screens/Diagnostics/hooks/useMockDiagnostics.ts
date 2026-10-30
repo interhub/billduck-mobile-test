@@ -3,6 +3,7 @@ import {useCallback, useState} from 'react';
 import {createMockControlApi, MOCK_SCENARIO, MockState} from '@/src/api/importsApi/mockControlApi';
 import {ENV} from '@/src/config/env';
 import {importController} from '@/src/services/importController/importController';
+import {ApiResult} from '@/src/types/importApi';
 import {logger} from '@/src/utils/logger/logger';
 import {LOG_NAME, LOG_TYPE} from '@/src/utils/logger/LOG_NAME';
 
@@ -19,6 +20,20 @@ type MockDiagnostics = {
   resetAll: () => Promise<void>;
 };
 
+const resolveHealth = (healthResult: ApiResult<true>): HealthState => {
+  if (healthResult.success) {
+    return 'ok';
+  }
+  return 'down';
+};
+
+const resolveMockState = (stateResult: ApiResult<MockState>): MockState | null => {
+  if (!stateResult.success) {
+    return null;
+  }
+  return stateResult.payload;
+};
+
 /**
  * The mock's own view of the test: health, scenario and counters. Read on focus, on pull to
  * refresh and after every action, never on a timer: the test routes are not repeated on their own.
@@ -33,8 +48,8 @@ export const useMockDiagnostics = (): MockDiagnostics => {
       mockControlApi.checkHealth(),
       mockControlApi.getState()
     ]);
-    setHealth(healthResult.success ? 'ok' : 'down');
-    setMockState(stateResult.success ? stateResult.payload : null);
+    setHealth(resolveHealth(healthResult));
+    setMockState(resolveMockState(stateResult));
     if (!healthResult.success) {
       logger.w(LOG_NAME.warning_log, {
         type: LOG_TYPE.mock_control,

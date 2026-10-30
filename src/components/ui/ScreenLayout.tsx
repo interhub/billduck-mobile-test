@@ -1,8 +1,35 @@
-import {ReactNode} from 'react';
-import {RefreshControl, ScrollView, StyleSheet, View} from 'react-native';
+import {ReactElement, ReactNode} from 'react';
+import {RefreshControl, RefreshControlProps, ScrollView, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {SCREEN_PADDING, SPACING} from '@/src/constants/UI_SIZES';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
+
+/**
+ * No pull to refresh means no control at all: on Android the ScrollView renders inside the
+ * control it gets, so a control that renders nothing would hide the screen.
+ */
+const createRefreshControl = (
+  onRefresh: (() => void) | undefined,
+  refreshing: boolean,
+  tintColor: string
+): ReactElement<RefreshControlProps> | undefined => {
+  if (!onRefresh) {
+    return undefined;
+  }
+  return <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tintColor} />;
+};
+
+type PinnedFooterProps = {
+  children?: ReactNode;
+};
+
+const PinnedFooter = ({children}: PinnedFooterProps) => {
+  const {styles} = useScreenLayoutStyles();
+  if (!children) {
+    return null;
+  }
+  return <View style={styles.footer}>{children}</View>;
+};
 
 type ScreenLayoutProps = {
   header?: ReactNode;
@@ -27,10 +54,7 @@ export const ScreenLayout = ({
   testID
 }: ScreenLayoutProps) => {
   const {styles, colors} = useScreenLayoutStyles();
-  const refreshControl = onRefresh ? (
-    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textMuted} />
-  ) : undefined;
-  const footerBlock = footer ? <View style={styles.footer}>{footer}</View> : null;
+  const refreshControl = createRefreshControl(onRefresh, refreshing, colors.textMuted);
   return (
     <SafeAreaView
       style={styles.safeArea}
@@ -46,7 +70,7 @@ export const ScreenLayout = ({
       >
         {children}
       </ScrollView>
-      {footerBlock}
+      <PinnedFooter>{footer}</PinnedFooter>
     </SafeAreaView>
   );
 };

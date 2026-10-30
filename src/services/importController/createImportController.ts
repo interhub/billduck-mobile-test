@@ -4,8 +4,13 @@ import {
   ImportControllerDeps,
   PickedStatement
 } from '@/src/services/importController/importControllerTypes';
-import {ImportDraft, ImportOutcomeKind, INITIAL_IMPORT_STATE} from '@/src/stores/importStore';
-import {ApiError, ImportJob} from '@/src/types/importApi';
+import {
+  ImportDraft,
+  ImportOutcome,
+  ImportOutcomeKind,
+  INITIAL_IMPORT_STATE
+} from '@/src/stores/importStore';
+import {ApiError, ApiResult, ImportJob} from '@/src/types/importApi';
 import {ImportOperation, ImportPhase, PendingCleanup} from '@/src/types/importOperation';
 import {ERROR_KIND, resolveErrorKind} from '@/src/utils/errors/resolveErrorKind';
 import {buildServerFileName} from '@/src/utils/files/buildServerFileName';
@@ -77,6 +82,36 @@ const isPolling = (operation: ImportOperation | null): boolean => {
   return operation !== null && operation.jobId !== null && POLLING_PHASES.includes(operation.phase);
 };
 
+/** The previous statement deleted to make room for a new one is not announced as "Deleted". */
+const resolveDeletionOutcome = (isReplacing: boolean): ImportOutcomeKind | null => {
+  if (isReplacing) {
+    return null;
+  }
+  return 'deleted';
+};
+
+const resolveUploadEvent = (attempt: number | null): TIMELINE_EVENT => {
+  if (attempt === null) {
+    return TIMELINE_EVENT.UPLOAD_SENT;
+  }
+  return TIMELINE_EVENT.RESENT_SAME_KEY;
+};
+
+/** The stored version of the entry with the same key; every other entry stays as it is. */
+const replaceByKey = (entry: PendingCleanup, stored: PendingCleanup): PendingCleanup => {
+  if (entry.idempotencyKey !== stored.idempotencyKey) {
+    return entry;
+  }
+  return stored;
+};
+
+const listReferencedCopies = (operation: ImportOperation | null): string[] => {
+  if (!operation) {
+    return [];
+  }
+  return [operation.operationId];
+};
+
 /**
  * The long-lived owner of the import. Screens call its actions and read `importStore`; every
  * server answer goes through the phase reducer, and every change of the operation reaches the
@@ -140,13 +175,20 @@ export const createImportController = ({
     });
   };
 
+  const withUpdatedAt = (operation: ImportOperation | null): ImportOperation | null => {
+    if (!operation) {
+      return null;
+    }
+    return {...operation, updatedAt: nowIso()};
+  };
+
   /** Writes to disk first and mirrors into the store only after the write has finished. */
   const saveSnapshot = async (
     operation: ImportOperation | null,
     pendingCleanups: PendingCleanup[]
   ) => {
     const previousPhase = state().operation?.phase;
-    const stored = operation && {...operation, updatedAt: nowIso()};
+    const stored = withUpdatedAt(operation);
     await repository.save({operation: stored, pendingCleanups});
     store.setState({operation: stored, pendingCleanups});
     if (stored && stored.phase !== previousPhase) {
@@ -178,6 +220,16 @@ export const createImportController = ({
       await saveSnapshot(state().operation, change(state().pendingCleanups));
     });
 
+  const buildOutcome = (
+    operation: ImportOperation,
+    outcomeKind: ImportOutcomeKind | null
+  ): ImportOutcome | null => {
+    if (!outcomeKind) {
+      return null;
+    }
+    return {kind: outcomeKind, operation, at: nowIso()};
+  };
+
   /** Forgets the operation on disk and in memory; any answer that still comes for it is dropped. */
   const closeOperation = (
     operation: ImportOperation,
@@ -190,7 +242,7 @@ export const createImportController = ({
       runtime.generation += 1;
       await saveSnapshot(null, state().pendingCleanups);
       files.removeCopy(operation.operationId);
-      const outcome = outcomeKind && {kind: outcomeKind, operation, at: nowIso()};
+      const outcome = buildOutcome(operation, outcomeKind);
       store.setState({payments: null, isReconnecting: false, outcome});
     });
 
@@ -246,7 +298,7 @@ export const createImportController = ({
       phase: operation.phase
     });
     const isReplacing = state().draft?.phase === 'replacing_previous';
-    await closeOperation(operation, isReplacing ? null : 'deleted');
+    await closeOperation(operation, resolveDeletionOutcome(isReplacing));
   };
 
   const markGone = async (token: RunToken) => {
@@ -438,7 +490,7 @@ export const createImportController = ({
     const uploadAbort = new AbortController();
     runtime.uploadAbort = uploadAbort;
     recordFor(token, {
-      event: attempt === null ? TIMELINE_EVENT.UPLOAD_SENT : TIMELINE_EVENT.RESENT_SAME_KEY,
+      event: resolveUploadEvent(attempt),
       attempt
     });
     logger.d(LOG_NAME.debug_log, {
@@ -1089,21 +1141,27 @@ export const createImportController = ({
     return confirmed === true;
   };
 
+  /**
+   * Reads a cancelled upload by its key. Its POST may still be on its way, so a miss gets one
+   * more look before the key is forgotten.
+   */
+  const findCancelledUpload = async (
+    idempotencyKey: string
+  ): Promise<ApiResult<ImportJob | null> | null> => {
+    const first = await api.getImportByKey(idempotencyKey);
+    if (!first.success || first.payload !== null) {
+      return first;
+    }
+    return runDelayLadder(
+      [LIMITS.CLEANUP_RECHECK_DELAY_MS],
+      () => api.getImportByKey(idempotencyKey),
+      wait
+    );
+  };
+
   /** One cleanup entry: true once the server holds nothing of that upload. */
   const cleanUp = async (cleanup: PendingCleanup): Promise<boolean> => {
-    const first = await api.getImportByKey(cleanup.idempotencyKey);
-    if (!first.success) {
-      return false;
-    }
-    // A cancelled POST may still be on its way: one more look before the key is forgotten.
-    const found =
-      first.payload === null
-        ? await runDelayLadder(
-            [LIMITS.CLEANUP_RECHECK_DELAY_MS],
-            () => api.getImportByKey(cleanup.idempotencyKey),
-            wait
-          )
-        : first;
+    const found = await findCancelledUpload(cleanup.idempotencyKey);
     if (!found?.success) {
       return false;
     }
@@ -1118,9 +1176,7 @@ export const createImportController = ({
     const deleteKey = cleanup.deleteKey ?? createKey();
     if (!cleanup.deleteKey) {
       const stored = {...cleanup, jobId: job.jobId, deleteKey};
-      await updateCleanups((cleanups) =>
-        cleanups.map((entry) => (entry.idempotencyKey === cleanup.idempotencyKey ? stored : entry))
-      );
+      await updateCleanups((cleanups) => cleanups.map((entry) => replaceByKey(entry, stored)));
     }
     if (job.status !== IMPORT_STATUS.DELETING) {
       const deleted = await api.deleteImport(job.jobId, deleteKey);
@@ -1179,7 +1235,7 @@ export const createImportController = ({
   const restore = async () => {
     try {
       const snapshot = await repository.load();
-      const keep = snapshot.operation ? [snapshot.operation.operationId] : [];
+      const keep = listReferencedCopies(snapshot.operation);
       files.removeAllExcept(keep);
       store.setState({
         operation: snapshot.operation,

@@ -14,5 +14,7 @@ export const MOTION = {
   pressScale: 0.97,
   /** One cycle of the soft pulse of an active status dot. */
   pulseCycleMs: 1200,
-  pulseMinOpacity: 0.35
+  pulseMinOpacity: 0.35,
+  /** The pulse breathes: it speeds up and slows down evenly in both directions. */
+  pulseEasing: Easing.inOut(Easing.sin)
 } as const;

@@ -6,7 +6,7 @@ import {MainButton} from '@/src/components/ui/MainButton';
 import {ScreenLayout} from '@/src/components/ui/ScreenLayout';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {SPACING} from '@/src/constants/UI_SIZES';
-import {useImportSubject} from '@/src/hooks/import/useImportSubject';
+import {ImportSubject, useImportSubject} from '@/src/hooks/import/useImportSubject';
 import {useTranslation} from '@/src/i18n/useTranslation';
 import {useAppNavigation} from '@/src/navigation/hooks/useAppNavigation';
 import {SCREEN_NAME} from '@/src/navigation/types';
@@ -14,12 +14,49 @@ import {CurrentImportCard} from '@/src/screens/Home/components/CurrentImportCard
 import {HomeHeader} from '@/src/screens/Home/components/HomeHeader';
 import {HomeNotices} from '@/src/screens/Home/components/HomeNotices';
 import {importController} from '@/src/services/importController/importController';
-import {useImportStore} from '@/src/stores/importStore';
+import {StatementPayments, useImportStore} from '@/src/stores/importStore';
 import {canAddStatement} from '@/src/utils/import/canAddStatement';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
 
-export const HomeScreen = () => {
+type HomeContentProps = {
+  isEmpty: boolean;
+  subject: ImportSubject;
+  payments: StatementPayments | null;
+  onOpenCurrentImport: () => void;
+};
+
+/** The empty state with its picture, or the card of the current import. */
+const HomeContent = ({isEmpty, subject, payments, onOpenCurrentImport}: HomeContentProps) => {
   const {styles} = useHomeScreenStyles();
+  const {t} = useTranslation();
+  if (isEmpty) {
+    return (
+      <View style={styles.empty}>
+        <Illustration name="empty" />
+        <TextLine>{t.home.empty}</TextLine>
+      </View>
+    );
+  }
+  return <CurrentImportCard subject={subject} payments={payments} onPress={onOpenCurrentImport} />;
+};
+
+type AddBlockedCaptionProps = {
+  isVisible: boolean;
+  text: string;
+};
+
+const AddBlockedCaption = ({isVisible, text}: AddBlockedCaptionProps) => {
+  if (!isVisible) {
+    return null;
+  }
+  return (
+    <TextLine variant="caption" align="center" testID="home_add_blocked_text">
+      {text}
+    </TextLine>
+  );
+};
+
+export const HomeScreen = () => {
   const {t} = useTranslation();
   const navigation = useAppNavigation();
   const subject = useImportSubject();
@@ -56,19 +93,6 @@ export const HomeScreen = () => {
   const checkServer = () => {
     void importController.runCleanups();
   };
-  const emptyState = isEmpty ? (
-    <View style={styles.empty}>
-      <Illustration name="empty" />
-      <TextLine>{t.home.empty}</TextLine>
-    </View>
-  ) : (
-    <CurrentImportCard subject={subject} payments={payments} onPress={openCurrentImport} />
-  );
-  const blockedCaption = isAddingAllowed ? null : (
-    <TextLine variant="caption" align="center" testID="home_add_blocked_text">
-      {t.home.addStatementBlocked}
-    </TextLine>
-  );
   const footer = (
     <>
       <MainButton
@@ -78,7 +102,7 @@ export const HomeScreen = () => {
         disabled={!isAddingAllowed}
         testID="home_add_statement_button"
       />
-      {blockedCaption}
+      <AddBlockedCaption isVisible={!isAddingAllowed} text={t.home.addStatementBlocked} />
       <MainButton
         title={t.home.diagnostics}
         variant="quiet"
@@ -95,7 +119,12 @@ export const HomeScreen = () => {
         outcome={subject.outcome}
         onCheckServer={checkServer}
       />
-      {emptyState}
+      <HomeContent
+        isEmpty={isEmpty}
+        subject={subject}
+        payments={payments}
+        onOpenCurrentImport={openCurrentImport}
+      />
     </ScreenLayout>
   );
 };

@@ -4,6 +4,7 @@ import {ThemeColors} from '@/src/constants/UI_COLORS';
 import {BORDER_WIDTH, RADIUS, SPACING, TOUCH_TARGET} from '@/src/constants/UI_SIZES';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {TouchableScaleView} from '@/src/components/ui/TouchableScaleView';
+import {useThemeColors} from '@/src/hooks/styles/useThemeColors';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
 
 export type MainButtonVariant = 'primary' | 'secondary' | 'destructive' | 'quiet';
@@ -29,6 +30,28 @@ const TEXT_COLOR: Record<MainButtonVariant, keyof ThemeColors> = {
   quiet: 'textMuted'
 };
 
+const pickDisabledStyle = (isDisabled: boolean, disabledStyle: ViewStyle): ViewStyle | null => {
+  if (!isDisabled) {
+    return null;
+  }
+  return disabledStyle;
+};
+
+type ButtonLeadingProps = {
+  isLoading: boolean;
+  icon: ReactNode;
+  color: keyof ThemeColors;
+};
+
+/** The spinner while loading, otherwise the optional icon before the title. */
+const ButtonLeading = ({isLoading, icon, color}: ButtonLeadingProps) => {
+  const colors = useThemeColors();
+  if (isLoading) {
+    return <ActivityIndicator color={colors[color]} />;
+  }
+  return icon;
+};
+
 /** Every screen action. `loading` and `disabled` block presses and say so to screen readers. */
 export const MainButton = ({
   title,
@@ -41,10 +64,14 @@ export const MainButton = ({
   style,
   testID
 }: MainButtonProps) => {
-  const {styles, colors} = useMainButtonStyles();
+  const {styles} = useMainButtonStyles();
   const isBlocked = loading || disabled;
   const textColor = TEXT_COLOR[variant];
-  const leading = loading ? <ActivityIndicator color={colors[textColor]} /> : icon;
+  const buttonStyle: StyleProp<ViewStyle> = [
+    styles.button,
+    styles[variant],
+    pickDisabledStyle(disabled, styles.disabled)
+  ];
   return (
     <View testID={testID} collapsable={false} style={style}>
       <TouchableScaleView
@@ -53,9 +80,9 @@ export const MainButton = ({
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? title}
         accessibilityState={{disabled: isBlocked, busy: loading}}
-        style={[styles.button, styles[variant], disabled && styles.disabled]}
+        style={buttonStyle}
       >
-        {leading}
+        <ButtonLeading isLoading={loading} icon={icon} color={textColor} />
         <TextLine variant="label" color={textColor} align="center" style={styles.title}>
           {title}
         </TextLine>

@@ -2,7 +2,6 @@ import {useFocusEffect} from '@react-navigation/native';
 import {useCallback, useState} from 'react';
 import {ActivityIndicator, Alert, StyleSheet, View} from 'react-native';
 import {useShallow} from 'zustand/react/shallow';
-import {Card} from '@/src/components/ui/Card';
 import {MainButton} from '@/src/components/ui/MainButton';
 import {PaymentRow} from '@/src/components/ui/PaymentRow';
 import {ScreenHeader} from '@/src/components/ui/ScreenHeader';
@@ -10,17 +9,63 @@ import {ScreenLayout} from '@/src/components/ui/ScreenLayout';
 import {StatusBadge, toBadgePhase} from '@/src/components/ui/StatusBadge';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {PAYMENT_DOT_COLORS} from '@/src/constants/UI_COLORS';
-import {SPACING} from '@/src/constants/UI_SIZES';
+import {BORDER_WIDTH, SPACING} from '@/src/constants/UI_SIZES';
 import {useThemeColors} from '@/src/hooks/styles/useThemeColors';
 import {useTranslation} from '@/src/i18n/useTranslation';
 import {useAppNavigation} from '@/src/navigation/hooks/useAppNavigation';
 import {SCREEN_NAME} from '@/src/navigation/types';
 import {importController} from '@/src/services/importController/importController';
 import {useImportStore} from '@/src/stores/importStore';
+import {ImportOperation} from '@/src/types/importOperation';
 import {formatLocalTime} from '@/src/utils/format/formatDate';
 import {formatMonthlyTotal} from '@/src/utils/format/formatMoney';
 import {TIMELINE_EVENT} from '@/src/utils/import/importTimeline';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
+
+type OperationBadgeProps = {
+  operation: ImportOperation | null;
+};
+
+const OperationBadge = ({operation}: OperationBadgeProps) => {
+  if (!operation) {
+    return null;
+  }
+  const badgePhase = toBadgePhase(operation.phase);
+  if (!badgePhase) {
+    return null;
+  }
+  return <StatusBadge phase={badgePhase} />;
+};
+
+type StaleNoteProps = {
+  isVisible: boolean;
+  text: string;
+};
+
+const StaleNote = ({isVisible, text}: StaleNoteProps) => {
+  if (!isVisible) {
+    return null;
+  }
+  return (
+    <TextLine variant="caption" testID="import_result_stale_text">
+      {text}
+    </TextLine>
+  );
+};
+
+type CheckedAtLineProps = {
+  lastAnswerAt: string | null;
+};
+
+const CheckedAtLine = ({lastAnswerAt}: CheckedAtLineProps) => {
+  const {t} = useTranslation();
+  if (!lastAnswerAt) {
+    return null;
+  }
+  return (
+    <TextLine variant="caption">{t.importResult.checkedAt(formatLocalTime(lastAnswerAt))}</TextLine>
+  );
+};
 
 export const ImportResultScreen = () => {
   const {styles} = useImportResultScreenStyles();
@@ -51,6 +96,8 @@ export const ImportResultScreen = () => {
     }
   };
   const openStatus = () => navigation.navigate(SCREEN_NAME.IMPORT_STATUS);
+  const openPaymentDetails = (paymentId: string) =>
+    navigation.navigate(SCREEN_NAME.PAYMENT_DETAILS, {paymentId});
   const confirmDelete = () => {
     Alert.alert(t.importResult.deleteQuestion, t.importResult.deleteExplanation, [
       {text: t.common.cancel, style: 'cancel'},
@@ -71,8 +118,6 @@ export const ImportResultScreen = () => {
       entry.operationId === operation?.operationId
   );
   if (!payments || !operation) {
-    const badgePhase = operation ? toBadgePhase(operation.phase) : null;
-    const badge = badgePhase ? <StatusBadge phase={badgePhase} /> : null;
     return (
       <ScreenLayout
         testID="import_result_screen"
@@ -83,7 +128,7 @@ export const ImportResultScreen = () => {
         <TextLine variant="display" accessibilityRole="header">
           {t.importResult.title}
         </TextLine>
-        {badge}
+        <OperationBadge operation={operation} />
         <ActivityIndicator color={colors.textMuted} />
         <TextLine>{t.importResult.loadingPayments}</TextLine>
       </ScreenLayout>
@@ -95,18 +140,10 @@ export const ImportResultScreen = () => {
       item={paymentItem}
       currency={payments.currency}
       dotColor={PAYMENT_DOT_COLORS[index % PAYMENT_DOT_COLORS.length]}
-      onPress={() => navigation.navigate(SCREEN_NAME.PAYMENT_DETAILS, {paymentId: paymentItem.id})}
+      onPress={openPaymentDetails}
       testID={`import_result_payment_row_${paymentItem.id}`}
     />
   ));
-  const staleNote = isStaleSkipped ? (
-    <TextLine variant="caption" testID="import_result_stale_text">
-      {t.importResult.staleSkipped}
-    </TextLine>
-  ) : null;
-  const checkedAt = lastAnswerAt ? (
-    <TextLine variant="caption">{t.importResult.checkedAt(formatLocalTime(lastAnswerAt))}</TextLine>
-  ) : null;
   const footer = (
     <MainButton
       title={t.importResult.deleteImport}
@@ -126,17 +163,17 @@ export const ImportResultScreen = () => {
       <TextLine variant="display" accessibilityRole="header">
         {t.importResult.title}
       </TextLine>
-      <Card>
+      <View style={styles.total}>
         <TextLine variant="caption">{t.importResult.totalLabel}</TextLine>
         <TextLine variant="moneyLarge" testID="import_result_total_text">
           {formatMonthlyTotal(payments.items, payments.currency, language)}
         </TextLine>
         <TextLine variant="caption">{t.home.repeatingPayments(payments.items.length)}</TextLine>
-      </Card>
+      </View>
       <View style={styles.list}>{rows}</View>
-      {staleNote}
+      <StaleNote isVisible={isStaleSkipped} text={t.importResult.staleSkipped} />
       <View style={styles.meta}>
-        {checkedAt}
+        <CheckedAtLine lastAnswerAt={lastAnswerAt} />
         <MainButton
           title={t.importResult.serverAnswers}
           variant="secondary"
@@ -148,10 +185,16 @@ export const ImportResultScreen = () => {
   );
 };
 
-const useImportResultScreenStyles = getResponsiveStylesHook(() =>
+const useImportResultScreenStyles = getResponsiveStylesHook(({colors}) =>
   StyleSheet.create({
-    list: {
+    total: {
       gap: SPACING.xs
+    },
+    list: {
+      gap: SPACING.xs,
+      paddingTop: SPACING.xs,
+      borderTopWidth: BORDER_WIDTH,
+      borderTopColor: colors.border
     },
     meta: {
       gap: SPACING.md

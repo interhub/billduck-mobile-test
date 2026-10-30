@@ -23,30 +23,36 @@ type PaymentRowProps = {
   item: RecurringItem;
   currency: string;
   dotColor: string;
-  onPress: () => void;
+  onPress: (paymentId: string) => void;
   testID: string;
 };
 
-/** One recurring payment: color dot, merchant, cadence with the last charge, amount, and "Details". */
+/** One recurring payment: color dot with the merchant, cadence, last charge, amount, and "Details". */
 export const PaymentRow = ({item, currency, dotColor, onPress, testID}: PaymentRowProps) => {
   const {styles, colors} = usePaymentRowStyles();
   const {t, language} = useTranslation();
   const amount = formatMoney(item.amountMinor, currency, language);
   const cadence = describeCadence(item.cadence, t);
   const lastCharge = t.importResult.lastCharge(formatCalendarDate(item.lastSeen, language));
+  const openDetails = () => onPress(item.id);
   return (
     <View testID={testID} collapsable={false}>
       <TouchableScaleView
-        onPress={onPress}
+        onPress={openDetails}
         accessibilityRole="button"
         accessibilityLabel={t.importResult.paymentLabel(item.merchant, amount, cadence)}
         accessibilityHint={t.importResult.details}
         style={styles.row}
       >
-        <View style={[styles.dot, {backgroundColor: dotColor}]} />
         <View style={styles.texts}>
-          <TextLine variant="label">{item.merchant}</TextLine>
-          <TextLine variant="caption">{`${cadence} · ${lastCharge}`}</TextLine>
+          <View style={styles.merchantLine}>
+            <View style={[styles.dot, {backgroundColor: dotColor}]} />
+            <TextLine variant="label" style={styles.merchant}>
+              {item.merchant}
+            </TextLine>
+          </View>
+          <TextLine variant="caption">{cadence}</TextLine>
+          <TextLine variant="caption">{lastCharge}</TextLine>
         </View>
         <View style={styles.trailing}>
           <TextLine variant="money" align="right">
@@ -67,15 +73,23 @@ const usePaymentRowStyles = getResponsiveStylesHook(() =>
       gap: SPACING.md,
       paddingVertical: SPACING.md
     },
+    texts: {
+      flex: 1,
+      minWidth: 140,
+      gap: SPACING.xs / 2
+    },
+    merchantLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm
+    },
     dot: {
       width: PAYMENT_DOT_SIZE,
       height: PAYMENT_DOT_SIZE,
       borderRadius: PAYMENT_DOT_SIZE / 2
     },
-    texts: {
-      flex: 1,
-      minWidth: 140,
-      gap: SPACING.xs / 2
+    merchant: {
+      flexShrink: 1
     },
     trailing: {
       flexDirection: 'row',

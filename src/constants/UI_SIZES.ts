@@ -36,7 +36,7 @@ export const PAYMENT_DOT_SIZE = 12;
 
 export const ILLUSTRATION = {
   maxWidth: 280,
-  /** Width over height of every bd_* picture. */
+  /** Width over height of the box every bd_* picture is fitted into. */
   aspectRatio: 1.5,
   /** Above this font scale, or on a window shorter than SHORT_WINDOW_HEIGHT, the picture halves. */
   shrinkFontScale: 1.3,

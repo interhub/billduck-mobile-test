@@ -5,6 +5,7 @@ import {MOCK_SCENARIO} from '@/src/api/importsApi/mockControlApi';
 import {BORDER_WIDTH, ICON_SIZE, SPACING, TOUCH_TARGET} from '@/src/constants/UI_SIZES';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {TouchableScaleView} from '@/src/components/ui/TouchableScaleView';
+import {useThemeColors} from '@/src/hooks/styles/useThemeColors';
 import {useTranslation} from '@/src/i18n/useTranslation';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
 
@@ -22,6 +23,18 @@ const SCENARIO_TEST_ID: Record<MOCK_SCENARIO, string> = {
   [MOCK_SCENARIO.DELETE_FAILURE]: 'diagnostics_scenario_delete_failure_switch'
 };
 
+type ScenarioMarkProps = {
+  isSelected: boolean;
+};
+
+const ScenarioMark = ({isSelected}: ScenarioMarkProps) => {
+  const colors = useThemeColors();
+  if (isSelected) {
+    return <CheckCircleIcon size={ICON_SIZE.md} color={colors.success} weight="regular" />;
+  }
+  return <CircleIcon size={ICON_SIZE.md} color={colors.textMuted} weight="regular" />;
+};
+
 type ScenarioPickerProps = {
   current: MOCK_SCENARIO | null;
   isDisabled: boolean;
@@ -30,26 +43,22 @@ type ScenarioPickerProps = {
 
 /** The four mock scenarios as a single choice list; the mark shows the active one. */
 export const ScenarioPicker = ({current, isDisabled, onSelect}: ScenarioPickerProps) => {
-  const {styles, colors} = useScenarioPickerStyles();
+  const {styles} = useScenarioPickerStyles();
   const {t} = useTranslation();
   const rows = SCENARIOS.map((scenario) => {
     const isSelected = scenario === current;
-    const Mark = isSelected ? CheckCircleIcon : CircleIcon;
+    const selectScenario = () => onSelect(scenario);
     return (
       <View key={scenario} testID={SCENARIO_TEST_ID[scenario]} collapsable={false}>
         <TouchableScaleView
-          onPress={() => onSelect(scenario)}
+          onPress={selectScenario}
           disabled={isDisabled}
           accessibilityRole="radio"
           accessibilityState={{checked: isSelected, disabled: isDisabled}}
           accessibilityLabel={`${scenario}. ${t.diagnostics.scenario[scenario]}`}
           style={styles.row}
         >
-          <Mark
-            size={ICON_SIZE.md}
-            color={isSelected ? colors.success : colors.textMuted}
-            weight="regular"
-          />
+          <ScenarioMark isSelected={isSelected} />
           <View style={styles.texts}>
             <TextLine variant="money">{scenario}</TextLine>
             <TextLine variant="caption">{t.diagnostics.scenario[scenario]}</TextLine>

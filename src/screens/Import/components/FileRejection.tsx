@@ -13,19 +13,26 @@ type FileRejectionProps = {
   sizeBytes: number;
 };
 
+/** The real size next to the limit, for a file refused as too large. */
+const SizeAgainstLimit = ({rejection, sizeBytes}: FileRejectionProps) => {
+  const {t, language} = useTranslation();
+  if (rejection !== STATEMENT_REJECTION.TOO_LARGE) {
+    return null;
+  }
+  return (
+    <TextLine variant="money" testID="import_confirm_size_text">
+      {t.importConfirm.sizeAgainstLimit(
+        formatExactBytes(sizeBytes, language),
+        formatExactBytes(LIMITS.MAX_FILE_SIZE_BYTES, language)
+      )}
+    </TextLine>
+  );
+};
+
 /** Why the file was refused on the phone, and that nothing reached the server. */
 export const FileRejection = ({rejection, sizeBytes}: FileRejectionProps) => {
   const {styles} = useFileRejectionStyles();
-  const {t, language} = useTranslation();
-  const sizeLine =
-    rejection === STATEMENT_REJECTION.TOO_LARGE ? (
-      <TextLine variant="money" testID="import_confirm_size_text">
-        {t.importConfirm.sizeAgainstLimit(
-          formatExactBytes(sizeBytes, language),
-          formatExactBytes(LIMITS.MAX_FILE_SIZE_BYTES, language)
-        )}
-      </TextLine>
-    ) : null;
+  const {t} = useTranslation();
   return (
     <View style={styles.block}>
       <Illustration name="rejected" />
@@ -35,7 +42,7 @@ export const FileRejection = ({rejection, sizeBytes}: FileRejectionProps) => {
       <TextLine variant="title" testID="import_confirm_rejection_text">
         {t.importConfirm.rejection[rejection]}
       </TextLine>
-      {sizeLine}
+      <SizeAgainstLimit rejection={rejection} sizeBytes={sizeBytes} />
       <TextLine>{t.importConfirm.expectedFiles}</TextLine>
       <TextLine variant="caption">{t.importConfirm.nothingSent}</TextLine>
     </View>

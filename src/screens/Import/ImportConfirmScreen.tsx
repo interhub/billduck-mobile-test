@@ -16,10 +16,24 @@ import {SCREEN_NAME} from '@/src/navigation/types';
 import {FileRejection} from '@/src/screens/Import/components/FileRejection';
 import {importController} from '@/src/services/importController/importController';
 import {useImportStore} from '@/src/stores/importStore';
+import {ImportOperation} from '@/src/types/importOperation';
 import {formatFileSize} from '@/src/utils/format/formatFileSize';
 import {formatStatementFormat, formatStatementTitle} from '@/src/utils/format/formatStatementTitle';
 import {hasServerJob} from '@/src/utils/import/importReducer';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
+
+type ReplaceNoteProps = {
+  operation: ImportOperation | null;
+};
+
+/** Said up front when the statement on the server is deleted before the new one is sent. */
+const ReplaceNote = ({operation}: ReplaceNoteProps) => {
+  const {t} = useTranslation();
+  if (!operation || !hasServerJob(operation)) {
+    return null;
+  }
+  return <TextLine testID="import_confirm_replace_text">{t.importConfirm.replaceNote}</TextLine>;
+};
 
 export const ImportConfirmScreen = () => {
   const {styles} = useImportConfirmScreenStyles();
@@ -94,10 +108,6 @@ export const ImportConfirmScreen = () => {
     {createdAt: draft.createdAt, file: {sizeBytes: draft.sizeBytes, format}},
     language
   );
-  const replaceNote =
-    operation && hasServerJob(operation) ? (
-      <TextLine testID="import_confirm_replace_text">{t.importConfirm.replaceNote}</TextLine>
-    ) : null;
   const footer = (
     <>
       <MainButton
@@ -138,7 +148,7 @@ export const ImportConfirmScreen = () => {
         <InfoRow label={t.importConfirm.titleLabel} value={storedTitle} />
       </Card>
       <TextLine variant="caption">{t.importConfirm.nameNote}</TextLine>
-      {replaceNote}
+      <ReplaceNote operation={operation} />
     </ScreenLayout>
   );
 };

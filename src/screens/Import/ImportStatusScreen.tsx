@@ -5,10 +5,11 @@ import {MainButton} from '@/src/components/ui/MainButton';
 import {ResponseTimeline} from '@/src/components/ui/ResponseTimeline';
 import {ScreenHeader} from '@/src/components/ui/ScreenHeader';
 import {ScreenLayout} from '@/src/components/ui/ScreenLayout';
+import {BadgePhase} from '@/src/components/ui/StatusBadge';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {SPACING} from '@/src/constants/UI_SIZES';
 import {ImportSubject, useImportSubject} from '@/src/hooks/import/useImportSubject';
-import {Translation} from '@/src/i18n/translations';
+import {LANGUAGE, Translation} from '@/src/i18n/translations';
 import {useTranslation} from '@/src/i18n/useTranslation';
 import {useAppNavigation} from '@/src/navigation/hooks/useAppNavigation';
 import {SCREEN_NAME} from '@/src/navigation/types';
@@ -16,7 +17,7 @@ import {ReadySummary} from '@/src/screens/Import/components/ReadySummary';
 import {StatusHero} from '@/src/screens/Import/components/StatusHero';
 import {describeImportStatus} from '@/src/screens/Import/logic/describeImportStatus';
 import {importController} from '@/src/services/importController/importController';
-import {useImportStore} from '@/src/stores/importStore';
+import {StatementPayments, useImportStore} from '@/src/stores/importStore';
 import {ImportFailure} from '@/src/types/importOperation';
 import {formatStatementTitle} from '@/src/utils/format/formatStatementTitle';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
@@ -30,6 +31,35 @@ type StatusActionHandlers = {
   openReport: () => void;
   pickAgain: () => void;
   toHome: () => void;
+};
+
+/** A copy that vanished asks for the same file again; a refused file asks for another one. */
+const describePickAgain = (failure: ImportFailure | null, t: Translation): string => {
+  if (failure?.reason === 'file_missing') {
+    return t.importStatus.pickAgain;
+  }
+  return t.importConfirm.chooseAnother;
+};
+
+type CancelUploadButtonProps = {
+  hasJob: boolean;
+  title: string;
+  onPress: () => void;
+};
+
+/** An upload can be cancelled only while the server has no job for it. */
+const CancelUploadButton = ({hasJob, title, onPress}: CancelUploadButtonProps) => {
+  if (hasJob) {
+    return null;
+  }
+  return (
+    <MainButton
+      title={title}
+      variant="quiet"
+      onPress={onPress}
+      testID="import_status_cancel_upload_button"
+    />
+  );
 };
 
 type StatusActionsProps = {
@@ -60,14 +90,11 @@ const StatusActions = ({subject, failure, handlers, t}: StatusActionsProps) => {
             onPress={handlers.retry}
             testID="import_status_retry_button"
           />
-          {subject.hasJob ? null : (
-            <MainButton
-              title={t.importStatus.cancelUpload}
-              variant="quiet"
-              onPress={handlers.cancelUpload}
-              testID="import_status_cancel_upload_button"
-            />
-          )}
+          <CancelUploadButton
+            hasJob={subject.hasJob}
+            title={t.importStatus.cancelUpload}
+            onPress={handlers.cancelUpload}
+          />
         </>
       );
     case 'not_received':
@@ -89,11 +116,7 @@ const StatusActions = ({subject, failure, handlers, t}: StatusActionsProps) => {
     case 'failed':
       return (
         <MainButton
-          title={
-            failure?.reason === 'file_missing'
-              ? t.importStatus.pickAgain
-              : t.importConfirm.chooseAnother
-          }
+          title={describePickAgain(failure, t)}
           onPress={handlers.pickAgain}
           testID="import_status_pick_again_button"
         />
@@ -151,6 +174,25 @@ const describeDetail = (failure: ImportFailure | null, t: Translation): string |
     return null;
   }
   return t.importStatus.serverAnswer(`HTTP ${failure.httpStatus}`);
+};
+
+const describeTitle = (subject: ImportSubject, language: LANGUAGE): string | null => {
+  if (!subject.titleSource) {
+    return null;
+  }
+  return formatStatementTitle(subject.titleSource, language);
+};
+
+type ReadyPaymentsProps = {
+  phase: BadgePhase;
+  payments: StatementPayments | null;
+};
+
+const ReadyPayments = ({phase, payments}: ReadyPaymentsProps) => {
+  if (phase !== 'ready' || !payments) {
+    return null;
+  }
+  return <ReadySummary payments={payments} />;
 };
 
 export const ImportStatusScreen = () => {
@@ -230,9 +272,7 @@ export const ImportStatusScreen = () => {
     },
     t
   );
-  const title = subject.titleSource ? formatStatementTitle(subject.titleSource, language) : null;
-  const summary =
-    subject.phase === 'ready' && payments ? <ReadySummary payments={payments} /> : null;
+  const title = describeTitle(subject, language);
   const footer = <StatusActions subject={subject} failure={failure} handlers={handlers} t={t} />;
   return (
     <ScreenLayout
@@ -246,7 +286,7 @@ export const ImportStatusScreen = () => {
         {t.importStatus.title}
       </TextLine>
       <StatusHero description={description} title={title} detail={describeDetail(failure, t)} />
-      {summary}
+      <ReadyPayments phase={subject.phase} payments={payments} />
       <View style={styles.timeline}>
         <TextLine variant="label">{t.importStatus.timelineTitle}</TextLine>
         <ResponseTimeline

@@ -1,6 +1,6 @@
 import {Alert, StyleSheet, View} from 'react-native';
 import {useShallow} from 'zustand/react/shallow';
-import {MockCounters} from '@/src/api/importsApi/mockControlApi';
+import {MockCounters, MockState} from '@/src/api/importsApi/mockControlApi';
 import {Card} from '@/src/components/ui/Card';
 import {InfoRow} from '@/src/components/ui/InfoRow';
 import {MainButton} from '@/src/components/ui/MainButton';
@@ -16,6 +16,7 @@ import {useAppNavigation} from '@/src/navigation/hooks/useAppNavigation';
 import {ScenarioPicker} from '@/src/screens/Diagnostics/components/ScenarioPicker';
 import {HealthState, useMockDiagnostics} from '@/src/screens/Diagnostics/hooks/useMockDiagnostics';
 import {useImportStore} from '@/src/stores/importStore';
+import {ImportOperation} from '@/src/types/importOperation';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
 
 const COUNTER_KEYS: readonly (keyof MockCounters)[] = [
@@ -61,6 +62,62 @@ const Section = ({title, children}: SectionProps) => {
   );
 };
 
+type ServerDownHintProps = {
+  isVisible: boolean;
+  text: string;
+};
+
+const ServerDownHint = ({isVisible, text}: ServerDownHintProps) => {
+  if (!isVisible) {
+    return null;
+  }
+  return <TextLine variant="caption">{text}</TextLine>;
+};
+
+type MockJobLinesProps = {
+  mockState: MockState | null;
+};
+
+const MockJobLines = ({mockState}: MockJobLinesProps) => {
+  const {t} = useTranslation();
+  if (!mockState?.jobs.length) {
+    return <TextLine variant="caption">{t.diagnostics.noJobs}</TextLine>;
+  }
+  const lines = mockState.jobs.map((job) => (
+    <TextLine key={job.jobId} variant="money">
+      {`${job.jobId} · ${job.status} · r${job.revision} · ${job.bytes} B`}
+    </TextLine>
+  ));
+  return <>{lines}</>;
+};
+
+type StoredOperationRowsProps = {
+  operation: ImportOperation | null;
+};
+
+const StoredOperationRows = ({operation}: StoredOperationRowsProps) => {
+  const {t} = useTranslation();
+  if (!operation) {
+    return <TextLine variant="caption">{t.diagnostics.nothingStored}</TextLine>;
+  }
+  return (
+    <>
+      <InfoRow
+        label={t.diagnostics.phaseLabel}
+        value={operation.phase}
+        valueVariant="money"
+        testID="diagnostics_phase_text"
+      />
+      <InfoRow label={t.diagnostics.jobLabel} value={operation.jobId ?? '—'} valueVariant="money" />
+      <InfoRow
+        label={t.diagnostics.revisionLabel}
+        value={String(operation.revision)}
+        valueVariant="money"
+      />
+    </>
+  );
+};
+
 export const DiagnosticsScreen = () => {
   const {styles} = useDiagnosticsScreenStyles();
   const {t} = useTranslation();
@@ -81,10 +138,7 @@ export const DiagnosticsScreen = () => {
     ]);
   };
   const header = <ScreenHeader onBack={navigation.goBack} testID="diagnostics_back_button" />;
-  const serverDownHint =
-    health === 'down' ? (
-      <TextLine variant="caption">{t.diagnostics.serverDownHint}</TextLine>
-    ) : null;
+  const isServerDown = health === 'down';
   const counters = COUNTER_KEYS.map((counterKey) => (
     <InfoRow
       key={counterKey}
@@ -94,33 +148,6 @@ export const DiagnosticsScreen = () => {
       testID={COUNTER_TEST_ID[counterKey]}
     />
   ));
-  const jobs = mockState?.jobs.length ? (
-    mockState.jobs.map((job) => (
-      <TextLine key={job.jobId} variant="money">
-        {`${job.jobId} · ${job.status} · r${job.revision} · ${job.bytes} B`}
-      </TextLine>
-    ))
-  ) : (
-    <TextLine variant="caption">{t.diagnostics.noJobs}</TextLine>
-  );
-  const phone = operation ? (
-    <>
-      <InfoRow
-        label={t.diagnostics.phaseLabel}
-        value={operation.phase}
-        valueVariant="money"
-        testID="diagnostics_phase_text"
-      />
-      <InfoRow label={t.diagnostics.jobLabel} value={operation.jobId ?? '—'} valueVariant="money" />
-      <InfoRow
-        label={t.diagnostics.revisionLabel}
-        value={String(operation.revision)}
-        valueVariant="money"
-      />
-    </>
-  ) : (
-    <TextLine variant="caption">{t.diagnostics.nothingStored}</TextLine>
-  );
   const footer = (
     <>
       <MainButton
@@ -162,7 +189,7 @@ export const DiagnosticsScreen = () => {
             value={describeHealth(health, t)}
             testID="diagnostics_health_text"
           />
-          {serverDownHint}
+          <ServerDownHint isVisible={isServerDown} text={t.diagnostics.serverDownHint} />
         </Card>
       </Section>
       <Section title={t.diagnostics.scenarioSection}>
@@ -176,11 +203,13 @@ export const DiagnosticsScreen = () => {
         <Card>{counters}</Card>
       </Section>
       <Section title={t.diagnostics.jobsSection}>
-        <View style={styles.jobs}>{jobs}</View>
+        <View style={styles.jobs}>
+          <MockJobLines mockState={mockState} />
+        </View>
       </Section>
       <Section title={t.diagnostics.phoneSection}>
         <Card>
-          {phone}
+          <StoredOperationRows operation={operation} />
           <InfoRow
             label={t.diagnostics.pendingCleanups}
             value={String(pendingCleanups.length)}

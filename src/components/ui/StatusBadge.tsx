@@ -72,13 +72,13 @@ const PulseDot = () => {
         Animated.timing(opacity, {
           toValue: MOTION.pulseMinOpacity,
           duration: halfCycle,
-          easing: MOTION.easing,
+          easing: MOTION.pulseEasing,
           useNativeDriver: true
         }),
         Animated.timing(opacity, {
           toValue: 1,
           duration: halfCycle,
-          easing: MOTION.easing,
+          easing: MOTION.pulseEasing,
           useNativeDriver: true
         })
       ])

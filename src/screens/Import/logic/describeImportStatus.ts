@@ -52,15 +52,27 @@ const explain = (
     case 'ready':
       return texts.ready;
     case 'reconnecting':
-      return hasJob ? texts.reconnectingJob : texts.reconnectingUpload;
+      if (hasJob) {
+        return texts.reconnectingJob;
+      }
+      return texts.reconnectingUpload;
     case 'server_unavailable':
-      return hasJob ? texts.serverUnavailableJob : texts.serverUnavailableUpload;
+      if (hasJob) {
+        return texts.serverUnavailableJob;
+      }
+      return texts.serverUnavailableUpload;
     case 'not_received':
       return texts.notReceived;
     case 'failed':
-      return failure?.reason === 'file_missing' ? texts.failedFileMissing : texts.failedRejected;
+      if (failure?.reason === 'file_missing') {
+        return texts.failedFileMissing;
+      }
+      return texts.failedRejected;
     case 'replacing_previous':
-      return isReplacementBlocked ? texts.replaceBlocked : texts.replacingPrevious;
+      if (isReplacementBlocked) {
+        return texts.replaceBlocked;
+      }
+      return texts.replacingPrevious;
     case 'deleting':
       return texts.deleting;
     case 'delete_failed':

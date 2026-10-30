@@ -13,7 +13,9 @@ const BLOCKED_ANDROID_PERMISSIONS = [
   'android.permission.RECORD_AUDIO',
   'android.permission.CAMERA',
   'android.permission.SYSTEM_ALERT_WINDOW',
-  'android.permission.VIBRATE'
+  'android.permission.VIBRATE',
+  // expo-image asks for it to watch the network for remote pictures; every picture here is bundled.
+  'android.permission.ACCESS_NETWORK_STATE'
 ];
 
 export default ({config}: ConfigContext): ExpoConfig => ({

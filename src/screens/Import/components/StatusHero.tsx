@@ -9,6 +9,28 @@ import {useReduceMotion} from '@/src/hooks/sensors/useReduceMotion';
 import {StatusDescription} from '@/src/screens/Import/logic/describeImportStatus';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
 
+type OptionalLineProps = {
+  text: string | null;
+};
+
+const StatementTitleLine = ({text}: OptionalLineProps) => {
+  if (!text) {
+    return null;
+  }
+  return <TextLine variant="caption">{text}</TextLine>;
+};
+
+const DetailLine = ({text}: OptionalLineProps) => {
+  if (!text) {
+    return null;
+  }
+  return (
+    <TextLine variant="money" color="textMuted">
+      {text}
+    </TextLine>
+  );
+};
+
 type StatusHeroProps = {
   description: StatusDescription;
   title: string | null;
@@ -33,21 +55,15 @@ export const StatusHero = ({description, title, detail}: StatusHeroProps) => {
       useNativeDriver: true
     }).start();
   }, [description.badgePhase, isReduceMotionEnabled, opacity]);
-  const titleLine = title ? <TextLine variant="caption">{title}</TextLine> : null;
-  const detailLine = detail ? (
-    <TextLine variant="money" color="textMuted">
-      {detail}
-    </TextLine>
-  ) : null;
   return (
     <Animated.View style={[styles.hero, {opacity}]}>
       <Illustration name={description.illustration} />
-      {titleLine}
+      <StatementTitleLine text={title} />
       <StatusBadge phase={description.badgePhase} testID="import_status_phase_badge" />
       <TextLine variant="title" testID="import_status_explanation_text">
         {description.explanation}
       </TextLine>
-      {detailLine}
+      <DetailLine text={detail} />
     </Animated.View>
   );
 };

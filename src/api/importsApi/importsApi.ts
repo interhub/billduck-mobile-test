@@ -74,6 +74,14 @@ const readItems = (value: Record<string, unknown>): RecurringItem[] | null => {
   return items;
 };
 
+const readCurrency = (value: Record<string, unknown>): string | null => {
+  const {currency} = value;
+  if (typeof currency !== 'string') {
+    return null;
+  }
+  return currency;
+};
+
 /** Reads a job from an answer body; anything that breaks the contract is unreadable (null). */
 export const readImportJob = (body: string): ImportJob | null => {
   const value = parseJson(body);
@@ -87,7 +95,7 @@ export const readImportJob = (body: string): ImportJob | null => {
     jobId: value.jobId,
     status: value.status,
     revision: value.revision,
-    currency: typeof value.currency === 'string' ? value.currency : null,
+    currency: readCurrency(value),
     items: null
   };
   if (job.status !== IMPORT_STATUS.READY) {
