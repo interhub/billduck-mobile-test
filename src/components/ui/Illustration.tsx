@@ -1,5 +1,5 @@
 import {Image, ImageSource} from 'expo-image';
-import {StyleSheet, useColorScheme} from 'react-native';
+import {StyleProp, StyleSheet, useColorScheme, View, ViewStyle} from 'react-native';
 import {ILLUSTRATION} from '@/src/constants/UI_SIZES';
 import {resolveThemeName} from '@/src/hooks/styles/useThemeColors';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
@@ -62,56 +62,55 @@ const ILLUSTRATION_FILES: Record<IllustrationName, IllustrationFiles> = {
 
 type IllustrationProps = {
   name: IllustrationName;
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
 };
 
-type IllustrationSize = {
-  width: number;
-  isHidden: boolean;
-};
-
-/** Halves on a large font or a short window, disappears on the largest fonts: buttons come first. */
-const resolveIllustrationSize = (
+/** Halves on a large font or a short window: buttons come first. */
+const resolveIllustrationWidth = (
   fontScale: number,
   windowHeight: number,
   availableWidth: number
-): IllustrationSize => {
-  if (fontScale > ILLUSTRATION.hideFontScale) {
-    return {width: 0, isHidden: true};
-  }
+): number => {
   const fullWidth = Math.min(ILLUSTRATION.maxWidth, availableWidth);
   if (fontScale > ILLUSTRATION.shrinkFontScale || windowHeight < ILLUSTRATION.shortWindowHeight) {
-    return {width: fullWidth / 2, isHidden: false};
+    return fullWidth / 2;
   }
-  return {width: fullWidth, isHidden: false};
+  return fullWidth;
 };
 
 /**
  * The one picture of a screen. Every picture fits into the same box, so a status change never
- * moves the text under it. Decorative: screen readers skip it.
+ * moves the text under it; on the largest fonts it disappears. Decorative: screen readers skip it.
  */
-export const Illustration = ({name}: IllustrationProps) => {
+export const Illustration = ({name, style, testID}: IllustrationProps) => {
   const {styles, dimensions} = useIllustrationStyles();
   const themeName = resolveThemeName(useColorScheme());
-  const size = resolveIllustrationSize(dimensions.fontScale, dimensions.height, dimensions.width);
-  if (size.isHidden) {
+  if (dimensions.fontScale > ILLUSTRATION.hideFontScale) {
     return null;
   }
   return (
-    <Image
-      source={ILLUSTRATION_FILES[name][themeName]}
-      contentFit="contain"
-      style={[styles.picture, {width: size.width}]}
-      accessible={false}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    />
+    <View testID={testID} collapsable={false} style={[styles.box, style]}>
+      <Image
+        source={ILLUSTRATION_FILES[name][themeName]}
+        contentFit="contain"
+        style={styles.picture}
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      />
+    </View>
   );
 };
 
-const useIllustrationStyles = getResponsiveStylesHook(() =>
+const useIllustrationStyles = getResponsiveStylesHook(({dimensions}) =>
   StyleSheet.create({
-    picture: {
+    box: {
       alignSelf: 'center',
+      alignItems: 'center'
+    },
+    picture: {
+      width: resolveIllustrationWidth(dimensions.fontScale, dimensions.height, dimensions.width),
       aspectRatio: ILLUSTRATION.aspectRatio
     }
   })

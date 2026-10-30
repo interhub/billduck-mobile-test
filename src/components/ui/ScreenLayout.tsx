@@ -1,5 +1,13 @@
 import {ReactElement, ReactNode} from 'react';
-import {RefreshControl, RefreshControlProps, ScrollView, StyleSheet, View} from 'react-native';
+import {
+  RefreshControl,
+  RefreshControlProps,
+  ScrollView,
+  StyleProp,
+  StyleSheet,
+  View,
+  ViewStyle
+} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {SCREEN_PADDING, SPACING} from '@/src/constants/UI_SIZES';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
@@ -38,12 +46,13 @@ type ScreenLayoutProps = {
   footer?: ReactNode;
   onRefresh?: () => void;
   refreshing?: boolean;
+  style?: StyleProp<ViewStyle>;
   testID: string;
 };
 
 /**
- * The root of every screen: safe area, theme background, scrolling content with pull to
- * refresh, and a pinned footer, so the main actions stay reachable at any font size.
+ * The root of every screen: safe area on every edge, theme background, scrolling content with
+ * pull to refresh, and a pinned footer, so the main actions stay reachable at any font size.
  */
 export const ScreenLayout = ({
   header,
@@ -51,16 +60,13 @@ export const ScreenLayout = ({
   footer,
   onRefresh,
   refreshing = false,
+  style,
   testID
 }: ScreenLayoutProps) => {
   const {styles, colors} = useScreenLayoutStyles();
   const refreshControl = createRefreshControl(onRefresh, refreshing, colors.textMuted);
   return (
-    <SafeAreaView
-      style={styles.safeArea}
-      edges={['top', 'left', 'right', 'bottom']}
-      testID={testID}
-    >
+    <SafeAreaView style={[styles.safeArea, style]} testID={testID}>
       {header}
       <ScrollView
         style={styles.scroll}

@@ -36,9 +36,10 @@ export const App = () => {
   if (!isReady) {
     return null;
   }
+  const navigationTheme = buildNavigationTheme(colors);
   return (
     <SafeAreaProvider>
-      <NavigationContainer ref={navRef} theme={buildNavigationTheme(colors)}>
+      <NavigationContainer ref={navRef} theme={navigationTheme}>
         <StatusBar style="auto" />
         <RootNavigator />
       </NavigationContainer>

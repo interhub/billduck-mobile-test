@@ -26,9 +26,13 @@ type StyleFactoryContext = {
 
 type StyleTypeFull = ReturnType<typeof StyleSheet.create>;
 
+const PERCENT_BASE = 100;
+
 /**
  * Builds a style hook from a factory that receives the window dimensions and the palette of the
- * current theme, so every color in a style comes from `UI_COLORS`.
+ * current theme, so every color in a style comes from `UI_COLORS`. The styles are memoized here
+ * and nowhere else: React Compiler does not compile the anonymous hook this returns, so without
+ * the memo every render would create a new style sheet.
  */
 export const getResponsiveStylesHook = <T extends StyleTypeFull = StyleTypeFull>(
   createStyles: (context: StyleFactoryContext) => T
@@ -43,8 +47,8 @@ export const getResponsiveStylesHook = <T extends StyleTypeFull = StyleTypeFull>
         height,
         fontScale,
         insets: {top, bottom, left, right},
-        getVW: (percent: number) => width * (percent / 100),
-        getVH: (percent: number) => height * (percent / 100)
+        getVW: (percent: number) => width * (percent / PERCENT_BASE),
+        getVH: (percent: number) => height * (percent / PERCENT_BASE)
       }),
       [width, height, fontScale, top, bottom, left, right]
     );

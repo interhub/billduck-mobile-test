@@ -14,18 +14,24 @@ import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHoo
 export type TextLineVariant =
   'display' | 'title' | 'label' | 'body' | 'caption' | 'money' | 'moneyLarge';
 
+type TextAlign = NonNullable<TextStyle['textAlign']>;
+
 type TextLineProps = {
   children: ReactNode;
   variant?: TextLineVariant;
   /** A palette key; captions default to `textMuted`, everything else to `textPrimary`. */
   color?: keyof ThemeColors;
-  align?: TextStyle['textAlign'];
+  align?: TextAlign;
   numberOfLines?: number;
   accessibilityRole?: AccessibilityRole;
   accessibilityLabel?: string;
   style?: StyleProp<TextStyle>;
   testID?: string;
 };
+
+type AlignStyleName = 'alignAuto' | 'alignLeft' | 'alignRight' | 'alignCenter' | 'alignJustify';
+
+type TextLineStyles = ReturnType<typeof useTextLineStyles>['styles'];
 
 type WordFit = {
   key: string;
@@ -35,6 +41,14 @@ type WordFit = {
 /** A line may end after a space, a dash, a dot separator or a slash; anywhere else a word broke. */
 const BREAK_ALLOWED_AFTER = /[\s\-\u2010\u2013\u2014·/]$/u;
 const WORD_FIT_STEP = 0.85;
+
+const ALIGN_STYLE: Record<TextAlign, AlignStyleName> = {
+  auto: 'alignAuto',
+  left: 'alignLeft',
+  right: 'alignRight',
+  center: 'alignCenter',
+  justify: 'alignJustify'
+};
 
 const resolveDefaultColor = (variant: TextLineVariant): keyof ThemeColors => {
   if (variant === 'caption') {
@@ -71,6 +85,16 @@ const scaleVariant = (variantStyle: TextStyle, scale: number): TextStyle | null 
   };
 };
 
+const resolveAlignStyle = (
+  styles: TextLineStyles,
+  align: TextAlign | undefined
+): TextStyle | null => {
+  if (!align) {
+    return null;
+  }
+  return styles[ALIGN_STYLE[align]];
+};
+
 const pickLayoutHandler = (
   isEnabled: boolean,
   handler: (event: TextLayoutEvent) => void
@@ -97,11 +121,12 @@ export const TextLine = ({
   style,
   testID
 }: TextLineProps) => {
-  const {styles, colors, dimensions} = useTextLineStyles();
+  const {styles, dimensions} = useTextLineStyles();
   const [fit, setFit] = useState<WordFit>({key: '', scale: 1});
   const fitKey = describeFitKey(children, dimensions.fontScale);
   const scale = resolveFitScale(fit, fitKey);
-  const textColor = colors[color ?? resolveDefaultColor(variant)];
+  const colorStyle = styles[color ?? resolveDefaultColor(variant)];
+  const alignStyle = resolveAlignStyle(styles, align);
   const fittedSize = scaleVariant(styles[variant], scale);
   // Never smaller than the same text at the standard system size.
   const nextScale = Math.max(scale * WORD_FIT_STEP, 1 / dimensions.fontScale);
@@ -117,7 +142,7 @@ export const TextLine = ({
   );
   return (
     <Text
-      style={[styles[variant], fittedSize, {color: textColor, textAlign: align}, style]}
+      style={[styles[variant], fittedSize, colorStyle, alignStyle, style]}
       numberOfLines={numberOfLines}
       onTextLayout={onTextLayout}
       accessibilityRole={accessibilityRole}
@@ -129,7 +154,7 @@ export const TextLine = ({
   );
 };
 
-const useTextLineStyles = getResponsiveStylesHook(() =>
+const useTextLineStyles = getResponsiveStylesHook(({colors}) =>
   StyleSheet.create({
     display: {
       fontFamily: FONT_NAME.UNBOUNDED_SEMIBOLD,
@@ -165,6 +190,25 @@ const useTextLineStyles = getResponsiveStylesHook(() =>
       fontFamily: FONT_NAME.GEIST_MONO_MEDIUM,
       fontSize: 30,
       lineHeight: 36
-    }
+    },
+    // One text color per palette key, picked by the `color` prop
+    background: {color: colors.background},
+    textPrimary: {color: colors.textPrimary},
+    card: {color: colors.card},
+    accent: {color: colors.accent},
+    textOnAccent: {color: colors.textOnAccent},
+    surfaceSecondary: {color: colors.surfaceSecondary},
+    textMuted: {color: colors.textMuted},
+    border: {color: colors.border},
+    accentText: {color: colors.accentText},
+    beak: {color: colors.beak},
+    success: {color: colors.success},
+    error: {color: colors.error},
+    // One style per value of the `align` prop
+    alignAuto: {textAlign: 'auto'},
+    alignLeft: {textAlign: 'left'},
+    alignRight: {textAlign: 'right'},
+    alignCenter: {textAlign: 'center'},
+    alignJustify: {textAlign: 'justify'}
   })
 );

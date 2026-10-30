@@ -10,6 +10,7 @@ export const TRANSLATIONS_EN = {
     appName: 'BillDuck',
     slogan: 'Where does my money go?',
     back: 'Back',
+    labelValue: (label: string, value: string) => `${label}: ${value}`,
     retry: 'Retry',
     cancel: 'Cancel'
   },

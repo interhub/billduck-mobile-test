@@ -1,6 +1,12 @@
 import {ActivityIndicator, StyleProp, StyleSheet, View, ViewStyle} from 'react-native';
 import {ThemeColors} from '@/src/constants/UI_COLORS';
-import {BORDER_WIDTH, RADIUS, SPACING, TOUCH_TARGET} from '@/src/constants/UI_SIZES';
+import {
+  BORDER_WIDTH,
+  DISABLED_OPACITY,
+  RADIUS,
+  SPACING,
+  TOUCH_TARGET
+} from '@/src/constants/UI_SIZES';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {TouchableScaleView} from '@/src/components/ui/TouchableScaleView';
 import {useThemeColors} from '@/src/hooks/styles/useThemeColors';
@@ -34,13 +40,12 @@ const pickDisabledStyle = (isDisabled: boolean, disabledStyle: ViewStyle): ViewS
   return disabledStyle;
 };
 
-type ButtonLeadingProps = {
+type ButtonSpinnerProps = {
   isLoading: boolean;
   color: keyof ThemeColors;
 };
 
-/** The spinner before the title while loading. */
-const ButtonLeading = ({isLoading, color}: ButtonLeadingProps) => {
+const ButtonSpinner = ({isLoading, color}: ButtonSpinnerProps) => {
   const colors = useThemeColors();
   if (!isLoading) {
     return null;
@@ -61,6 +66,7 @@ export const MainButton = ({
 }: MainButtonProps) => {
   const {styles} = useMainButtonStyles();
   const isBlocked = loading || disabled;
+  const buttonLabel = accessibilityLabel ?? title;
   const textColor = TEXT_COLOR[variant];
   const buttonStyle: StyleProp<ViewStyle> = [
     styles.button,
@@ -73,11 +79,11 @@ export const MainButton = ({
         onPress={onPress}
         disabled={isBlocked}
         accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel ?? title}
+        accessibilityLabel={buttonLabel}
         accessibilityState={{disabled: isBlocked, busy: loading}}
         style={buttonStyle}
       >
-        <ButtonLeading isLoading={loading} color={textColor} />
+        <ButtonSpinner isLoading={loading} color={textColor} />
         <TextLine variant="label" color={textColor} align="center" style={styles.title}>
           {title}
         </TextLine>
@@ -111,7 +117,7 @@ const useMainButtonStyles = getResponsiveStylesHook(({colors}) =>
       backgroundColor: 'transparent'
     },
     disabled: {
-      opacity: 0.45
+      opacity: DISABLED_OPACITY
     },
     title: {
       flexShrink: 1

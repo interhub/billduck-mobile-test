@@ -70,7 +70,10 @@ const resolveImportSubject = (
   };
 };
 
-/** The subject of the import screens, from the store, without building objects in the selector. */
+/**
+ * The subject of the import screens. The selector only picks three store references, which
+ * useShallow keeps stable; the subject itself is built outside the selector.
+ */
 export const useImportSubject = (): ImportSubject => {
   const {draft, operation, outcome} = useImportStore(
     useShallow((state) => ({

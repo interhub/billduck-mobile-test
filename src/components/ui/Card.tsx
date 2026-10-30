@@ -13,7 +13,7 @@ type CardProps = {
 export const Card = ({children, style, testID}: CardProps) => {
   const {styles} = useCardStyles();
   return (
-    <View style={[styles.card, style]} testID={testID}>
+    <View testID={testID} collapsable={false} style={[styles.card, style]}>
       {children}
     </View>
   );

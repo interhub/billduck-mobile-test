@@ -21,6 +21,7 @@ export const TRANSLATIONS_RU: Translation = {
     appName: 'BillDuck',
     slogan: 'Куда уходят мои деньги?',
     back: 'Назад',
+    labelValue: (label: string, value: string) => `${label}: ${value}`,
     retry: 'Повторить',
     cancel: 'Отмена'
   },

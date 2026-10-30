@@ -9,7 +9,6 @@ export const resolveThemeName = (colorScheme: ColorSchemeName | null | undefined
   return 'light';
 };
 
-/** The palette of the current system theme. */
 export const useThemeColors = (): ThemeColors => {
   const colorScheme = useColorScheme();
   return UI_COLORS[resolveThemeName(colorScheme)];

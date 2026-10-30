@@ -1,5 +1,5 @@
 import {CaretLeftIcon} from 'phosphor-react-native/src/icons/CaretLeft';
-import {StyleSheet, View} from 'react-native';
+import {StyleProp, StyleSheet, View, ViewStyle} from 'react-native';
 import {ICON_SIZE, SCREEN_PADDING, SPACING, TOUCH_TARGET} from '@/src/constants/UI_SIZES';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {TouchableScaleView} from '@/src/components/ui/TouchableScaleView';
@@ -8,15 +8,17 @@ import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHoo
 
 type ScreenHeaderProps = {
   onBack: () => void;
+  style?: StyleProp<ViewStyle>;
+  /** The id of the back button. */
   testID: string;
 };
 
 /** The pinned top row of a pushed screen: the back action. */
-export const ScreenHeader = ({onBack, testID}: ScreenHeaderProps) => {
+export const ScreenHeader = ({onBack, style, testID}: ScreenHeaderProps) => {
   const {styles, colors} = useScreenHeaderStyles();
   const {t} = useTranslation();
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, style]}>
       <View testID={testID} collapsable={false}>
         <TouchableScaleView
           onPress={onBack}

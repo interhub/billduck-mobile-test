@@ -11,9 +11,10 @@ const ACTIVE_STATE: AppStateStatus = 'active';
  * On every return to the foreground it also reads the system language again: on Android the
  * activity is not recreated by a language change.
  */
-export const useAppStateWatcher = () => {
+export const useAppStateWatcher = (): void => {
   useEffect(() => {
-    const currentState: AppStateStatus = AppState?.currentState ?? ACTIVE_STATE;
+    // React Native leaves it null when the native AppState module is missing
+    const currentState: AppStateStatus = AppState.currentState ?? ACTIVE_STATE;
     useAppStateStore.getState().setAppState(currentState);
     const subscription = AppState.addEventListener('change', (nextState) => {
       if (nextState === ACTIVE_STATE) {
@@ -22,7 +23,7 @@ export const useAppStateWatcher = () => {
       useAppStateStore.getState().setAppState(nextState);
     });
     return () => {
-      subscription?.remove?.();
+      subscription.remove();
     };
   }, []);
 };

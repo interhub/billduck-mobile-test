@@ -10,10 +10,18 @@ import {WarningOctagonIcon} from 'phosphor-react-native/src/icons/WarningOctagon
 import {XCircleIcon} from 'phosphor-react-native/src/icons/XCircle';
 import type {Icon} from 'phosphor-react-native';
 import {useEffect, useState} from 'react';
-import {Animated, StyleSheet, View} from 'react-native';
+import {Animated, StyleProp, StyleSheet, View, ViewStyle} from 'react-native';
 import {ThemeColors} from '@/src/constants/UI_COLORS';
 import {MOTION} from '@/src/constants/UI_MOTION';
-import {BORDER_WIDTH, ICON_SIZE, SPACING, STATUS_DOT_SIZE} from '@/src/constants/UI_SIZES';
+import {
+  ICON_SIZE,
+  RADIUS,
+  SPACING,
+  STATUS_BADGE_PADDING,
+  STATUS_DOT_SIZE,
+  STATUS_RING_BORDER_WIDTH,
+  STATUS_RING_SIZE
+} from '@/src/constants/UI_SIZES';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {useReduceMotion} from '@/src/hooks/sensors/useReduceMotion';
 import {useTranslation} from '@/src/i18n/useTranslation';
@@ -74,10 +82,15 @@ const PulseDot = () => {
       pulse.stop();
     };
   }, [isReduceMotionEnabled, opacity]);
-  return <Animated.View style={[styles.dot, {opacity}]} />;
+  const fadeStyle = {opacity};
+  return <Animated.View style={[styles.dot, fadeStyle]} />;
 };
 
-const BadgeMark = ({look}: {look: BadgeLook}) => {
+type BadgeMarkProps = {
+  look: BadgeLook;
+};
+
+const BadgeMark = ({look}: BadgeMarkProps) => {
   const {styles, colors} = useStatusBadgeStyles();
   if (look.mark === 'pulse') {
     return <PulseDot />;
@@ -91,17 +104,18 @@ const BadgeMark = ({look}: {look: BadgeLook}) => {
 
 type StatusBadgeProps = {
   phase: BadgePhase;
+  style?: StyleProp<ViewStyle>;
   testID?: string;
 };
 
 /** The phase as an icon and a word in its brand color: never color alone. */
-export const StatusBadge = ({phase, testID}: StatusBadgeProps) => {
+export const StatusBadge = ({phase, style, testID}: StatusBadgeProps) => {
   const {styles} = useStatusBadgeStyles();
   const {t} = useTranslation();
   const look = BADGE_LOOK[phase];
   const word = t.phase[phase];
   return (
-    <View testID={testID} collapsable={false}>
+    <View testID={testID} collapsable={false} style={style}>
       <View style={styles.badge} accessible accessibilityRole="text" accessibilityLabel={word}>
         <View style={styles.markBox} importantForAccessibility="no-hide-descendants">
           <BadgeMark look={look} />
@@ -122,10 +136,10 @@ const useStatusBadgeStyles = getResponsiveStylesHook(({colors}) =>
       alignSelf: 'flex-start',
       flexWrap: 'wrap',
       gap: SPACING.sm,
-      paddingVertical: SPACING.xs + 2,
-      paddingLeft: SPACING.md - 2,
+      paddingVertical: STATUS_BADGE_PADDING.vertical,
+      paddingLeft: STATUS_BADGE_PADDING.left,
       paddingRight: SPACING.md,
-      borderRadius: SPACING.xxl,
+      borderRadius: RADIUS.pill,
       backgroundColor: colors.surfaceSecondary
     },
     markBox: {
@@ -141,10 +155,10 @@ const useStatusBadgeStyles = getResponsiveStylesHook(({colors}) =>
       backgroundColor: colors.accent
     },
     ring: {
-      width: STATUS_DOT_SIZE + 2,
-      height: STATUS_DOT_SIZE + 2,
-      borderRadius: (STATUS_DOT_SIZE + 2) / 2,
-      borderWidth: BORDER_WIDTH + 1,
+      width: STATUS_RING_SIZE,
+      height: STATUS_RING_SIZE,
+      borderRadius: STATUS_RING_SIZE / 2,
+      borderWidth: STATUS_RING_BORDER_WIDTH,
       borderColor: colors.textMuted
     }
   })
