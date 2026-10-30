@@ -201,7 +201,6 @@ const useTextLineStyles = getResponsiveStylesHook(({colors}) =>
     textMuted: {color: colors.textMuted},
     border: {color: colors.border},
     accentText: {color: colors.accentText},
-    beak: {color: colors.beak},
     success: {color: colors.success},
     error: {color: colors.error},
     // One style per value of the `align` prop

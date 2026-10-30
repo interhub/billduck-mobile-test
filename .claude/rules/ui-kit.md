@@ -85,7 +85,7 @@ paths:
 ## Parts Of One Screen
 - They live in their screen folder and move to the kit on the second consumer (`project-structure-and-reuse.md`).
 - `PaymentRow` (`src/screens/Import/components/PaymentRow.tsx`, used by `PaymentList` on `IMPORT_RESULT`): one recurring payment with its color dot, merchant, cadence, last charge, amount (`money`) and "Details", which opens `PAYMENT_DETAILS`. Key props: `payment` (`RecurringItem`), `currency`, `position` (the place in the list, which picks the dot from `PAYMENT_DOT_COLORS`), `onPress` (gets the payment id), `testID` (`import_result_payment_row_<payment.id>`). Its `accessibilityLabel` reads merchant, amount and cadence in words.
-- `BillDuckLogo` (`src/screens/Home/components/BillDuckLogo.tsx`, used by `HomeHeader`): the logo as `react-native-svg` code (`icons-and-images.md`). Key prop: `testID` (`home_logo_text`).
+- `BillDuckLogo` (`src/screens/Home/components/BillDuckLogo.tsx`, used by `HomeHeader`): the duck of the app icon as a bitmap next to the wordmark (`icons-and-images.md`). Key prop: `testID` (`home_logo_text`).
 
 ## Creating New Components
 - Create one only when a pattern repeats across screens. A component for one screen lives in `src/screens/<Feature>/components/` and moves to `src/components/ui/` on the second consumer.

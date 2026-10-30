@@ -9,7 +9,6 @@ export type ThemeColors = {
   textMuted: string;
   border: string;
   accentText: string;
-  beak: string;
   success: string;
   error: string;
 };
@@ -27,7 +26,6 @@ export const UI_COLORS: Record<ThemeName, ThemeColors> = {
     textMuted: '#6F6A62',
     border: '#E8E4DC',
     accentText: '#8A6400',
-    beak: '#E8873A',
     success: '#1F9D68',
     error: '#C8323C'
   },
@@ -41,7 +39,6 @@ export const UI_COLORS: Record<ThemeName, ThemeColors> = {
     textMuted: '#A39E94',
     border: '#2E2B25',
     accentText: '#F2C94C',
-    beak: '#E8873A',
     success: '#3DD68C',
     error: '#FF6B6B'
   }

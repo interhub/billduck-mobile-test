@@ -33,7 +33,6 @@ paths:
 | `textMuted` | `#6F6A62` | `#A39E94` | Captions, dates |
 | `border` | `#E8E4DC` | `#2E2B25` | Thin lines, card borders |
 | `accentText` | `#8A6400` | `#F2C94C` | Readable yellow words |
-| `beak` | `#E8873A` | `#E8873A` | Duck drawings only |
 | `success` | `#1F9D68` | `#3DD68C` | Ready |
 | `error` | `#C8323C` | `#FF6B6B` | Error, delete |
 

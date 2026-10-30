@@ -19,7 +19,7 @@
 | `tsconfig.json`, `eslint.config.js`, `.prettierrc.json`, `.prettierignore`, `.gitignore` | The `@/*` alias and strict TypeScript, the ESLint checks (`rn-code-styles.md`), the Prettier settings, the ignore lists |
 | `jest.config.js`, `jest.setup.js`, `jest.globalSetup.js`, `jest.integration.config.js` | The unit and integration Jest configs and their setup (`testing.md`) |
 | `assets/fonts/` | Unbounded, Geist, Geist Mono TTF files and their OFL licenses |
-| `assets/images/` | `icon.png`, `adaptive-icon-foreground.png`, `splash-icon.png` |
+| `assets/images/` | `icon.png`, `adaptive-icon-foreground.png`, `splash-icon.png`, and the duck of the header logo in `logo-mark@2x.png` and `logo-mark@3x.png` |
 | `assets/illustrations/` | `bd_*.png` and `bd_*-dark.png` in `@2x` and `@3x` |
 | `mobile-engineer-candidate-kit/` | Byte-for-byte copy of the candidate kit (mock server, its tests, fixtures); never edited |
 | `scripts/` | Helpers for the reviewer and the archive (`push-fixtures.sh`, `save-test-results.sh`, `make-archive.sh`) |
