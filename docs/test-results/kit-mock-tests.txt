@@ -1,4 +1,4 @@
-date: 2026-10-30 04:04:26
+date: 2026-10-30 05:07:51
 command: npm --prefix mobile-engineer-candidate-kit test
 
 
@@ -9,37 +9,37 @@ TAP version 13
 # Subtest: same key and bytes produce one job; changed bytes conflict
 ok 1 - same key and bytes produce one job; changed bytes conflict
   ---
-  duration_ms: 23.913208
+  duration_ms: 22.433083
   type: 'test'
   ...
 # Subtest: lost acknowledgement is recoverable by key
 ok 2 - lost acknowledgement is recoverable by key
   ---
-  duration_ms: 10.918416
+  duration_ms: 9.798291
   type: 'test'
   ...
 # Subtest: stale status follows ready, and failed delete does not claim deletion
 ok 3 - stale status follows ready, and failed delete does not claim deletion
   ---
-  duration_ms: 14.326375
+  duration_ms: 10.607041
   type: 'test'
   ...
 # Subtest: rejects spoofed and oversized files
 ok 4 - rejects spoofed and oversized files
   ---
-  duration_ms: 18.261791
+  duration_ms: 18.140375
   type: 'test'
   ...
 # Subtest: accepts the shared PDF fixture as real bytes
 ok 5 - accepts the shared PDF fixture as real bytes
   ---
-  duration_ms: 4.232209
+  duration_ms: 4.209583
   type: 'test'
   ...
 # Subtest: job metadata survives a mock process restart
 ok 6 - job metadata survives a mock process restart
   ---
-  duration_ms: 3.142625
+  duration_ms: 2.936791
   type: 'test'
   ...
 1..6
@@ -50,6 +50,6 @@ ok 6 - job metadata survives a mock process restart
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 130.634458
+# duration_ms 118.765958
 
 result: exit code 0

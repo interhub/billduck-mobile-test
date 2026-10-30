@@ -1,36 +1,36 @@
-date: 2026-10-30 04:04:04
+date: 2026-10-30 05:07:29
 command: npm run test:integration -- --verbose
 
 
 > billduck@1.0.0 test:integration
 > jest --config jest.integration.config.js --runInBand --verbose
 
-PASS Node tests/integration/failureScenarios.test.ts (15.425 s)
+PASS Node tests/integration/failureScenarios.test.ts (15.393 s)
   lost_ack
-    ✓ recovers the job by key with no button and creates one job (1054 ms)
-    ✓ keeps one job when the app is restarted before the recovery (1570 ms)
+    ✓ recovers the job by key with no button and creates one job (1055 ms)
+    ✓ keeps one job when the app is restarted before the recovery (1572 ms)
     ✓ answers a repeated POST with the same key and bytes with the same job and a duplicate hit (6 ms)
   stale_status
-    ✓ skips processing r2 after ready r3 and keeps the report (1039 ms)
+    ✓ skips processing r2 after ready r3 and keeps the report (1042 ms)
   delete_failure
-    ✓ stays honest on a 503 and reaches deleted with the same key after happy (2549 ms)
+    ✓ stays honest on a 503 and reaches deleted with the same key after happy (2537 ms)
   a reset mock and a stopped mock
-    ✓ moves a job the server forgot to gone_on_server and never takes the new job with the same number (1039 ms)
-    ✓ deletes a cancelled upload once the server answers again, if it got there (8042 ms)
+    ✓ moves a job the server forgot to gone_on_server and never takes the new job with the same number (1038 ms)
+    ✓ deletes a cancelled upload once the server answers again, if it got there (8023 ms)
 
-PASS Node tests/integration/importFlow.test.ts (5.732 s)
+PASS Node tests/integration/importFlow.test.ts (5.693 s)
   happy path against the real mock
-    ✓ sends the real bytes of statement.csv and shows the report only after ready (1042 ms)
-    ✓ sends the real bytes of statement.pdf and shows the report only after ready (1039 ms)
-    ✓ keeps every request inside the contract of the mock (2530 ms)
-    ✓ never lets a Russian file name reach the server or the logs (1035 ms)
+    ✓ sends the real bytes of statement.csv and shows the report only after ready (1038 ms)
+    ✓ sends the real bytes of statement.pdf and shows the report only after ready (1035 ms)
+    ✓ keeps every request inside the contract of the mock (2535 ms)
+    ✓ never lets a Russian file name reach the server or the logs (1029 ms)
   files rejected before the network
-    ✓ rejects spoofed.pdf and leaves createRequests unchanged (4 ms)
-    ✓ rejects oversize.csv and leaves createRequests unchanged (17 ms)
+    ✓ rejects spoofed.pdf and leaves createRequests unchanged (6 ms)
+    ✓ rejects oversize.csv and leaves createRequests unchanged (21 ms)
 
 Test Suites: 2 passed, 2 total
 Tests:       13 passed, 13 total
 Snapshots:   0 total
-Time:        21.187 s, estimated 22 s
+Time:        21.11 s, estimated 22 s
 
 result: exit code 0

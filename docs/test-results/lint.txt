@@ -1,9 +1,9 @@
-date: 2026-10-30 04:03:56
+date: 2026-10-30 05:07:20
 command: npm run lint
 
 
 > billduck@1.0.0 lint
-> eslint . && prettier --check .
+> eslint . && prettier --check . --ignore-path .gitignore --ignore-path .prettierignore --ignore-path .git/info/exclude
 
 Checking formatting...
 All matched files use Prettier code style!
