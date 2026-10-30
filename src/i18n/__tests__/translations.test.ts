@@ -9,7 +9,7 @@ describe('translations', () => {
   });
 
   it('picks the Russian word form by the last digits, with the teens always in the many form', () => {
-    const {repeatingPayments} = TRANSLATIONS[LANGUAGE.RU].home;
+    const {repeatingPayments} = TRANSLATIONS[LANGUAGE.RU].common;
     expect(repeatingPayments(1)).toBe('1 повторяющийся платёж');
     expect(repeatingPayments(21)).toBe('21 повторяющийся платёж');
     expect(repeatingPayments(2)).toBe('2 повторяющихся платежа');
@@ -21,7 +21,7 @@ describe('translations', () => {
   });
 
   it('picks the English word form by the count', () => {
-    const {repeatingPayments} = TRANSLATIONS[LANGUAGE.EN].home;
+    const {repeatingPayments} = TRANSLATIONS[LANGUAGE.EN].common;
     expect(repeatingPayments(1)).toBe('1 repeating payment');
     expect(repeatingPayments(2)).toBe('2 repeating payments');
   });

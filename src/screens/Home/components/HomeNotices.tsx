@@ -6,8 +6,15 @@ import {ICON_SIZE, SPACING} from '@/src/constants/UI_SIZES';
 import {MainButton} from '@/src/components/ui/MainButton';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {useTranslation} from '@/src/i18n/useTranslation';
-import {ImportOutcome} from '@/src/types/importDraft';
+import {resolveOutcomeNotice} from '@/src/screens/Home/logic/resolveOutcomeNotice';
+import {ImportOutcome, ImportOutcomeKind} from '@/src/types/importDraft';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
+
+const OUTCOME_ICON: Record<ImportOutcomeKind, Icon> = {
+  deleted: CheckIcon,
+  gone_on_server: InfoIcon,
+  upload_cancelled: InfoIcon
+};
 
 type NoticeLineProps = {
   icon: Icon;
@@ -27,65 +34,67 @@ const NoticeLine = ({icon: NoticeIcon, text, testID}: NoticeLineProps) => {
   );
 };
 
+type CleanupNoticeProps = {
+  isVisible: boolean;
+  onRetry: () => void;
+};
+
+/** A cancelled upload still to be checked on the server, and a way to check it now. */
+const CleanupNotice = ({isVisible, onRetry}: CleanupNoticeProps) => {
+  const {t} = useTranslation();
+  if (!isVisible) {
+    return null;
+  }
+  return (
+    <>
+      <NoticeLine icon={InfoIcon} text={t.home.cleanupPending} testID="home_cleanup_text" />
+      <MainButton
+        title={t.common.retry}
+        variant="secondary"
+        onPress={onRetry}
+        testID="home_check_server_button"
+      />
+    </>
+  );
+};
+
+type OutcomeNoticeProps = {
+  outcomeKind: ImportOutcomeKind | null;
+};
+
+const OutcomeNotice = ({outcomeKind}: OutcomeNoticeProps) => {
+  const {t} = useTranslation();
+  if (!outcomeKind) {
+    return null;
+  }
+  return (
+    <NoticeLine
+      icon={OUTCOME_ICON[outcomeKind]}
+      text={t.home.outcome[outcomeKind]}
+      testID="home_outcome_text"
+    />
+  );
+};
+
 type HomeNoticesProps = {
   hasPendingCleanups: boolean;
   outcome: ImportOutcome | null;
-  onCheckServer: () => void;
+  onRetryCleanups: () => void;
 };
 
 /** Honest lines about what happened last: a cleanup still to do, a confirmed deletion, a lost job. */
-export const HomeNotices = ({hasPendingCleanups, outcome, onCheckServer}: HomeNoticesProps) => {
+export const HomeNotices = ({hasPendingCleanups, outcome, onRetryCleanups}: HomeNoticesProps) => {
   const {styles} = useHomeNoticesStyles();
-  const {t} = useTranslation();
-  const lines = [];
-  if (hasPendingCleanups) {
-    lines.push(
-      <NoticeLine
-        key="cleanup"
-        icon={InfoIcon}
-        text={t.home.cleanupPending}
-        testID="home_cleanup_text"
-      />
-    );
-    lines.push(
-      <MainButton
-        key="check"
-        title={t.common.retry}
-        variant="secondary"
-        onPress={onCheckServer}
-        testID="home_check_server_button"
-      />
-    );
-  }
-  if (outcome?.kind === 'deleted') {
-    lines.push(
-      <NoticeLine
-        key="deleted"
-        icon={CheckIcon}
-        text={t.home.outcomeDeleted}
-        testID="home_outcome_text"
-      />
-    );
-  }
-  if (outcome?.kind === 'gone_on_server') {
-    lines.push(
-      <NoticeLine key="gone" icon={InfoIcon} text={t.home.outcomeGone} testID="home_outcome_text" />
-    );
-  }
-  if (outcome?.kind === 'upload_cancelled' && !hasPendingCleanups) {
-    lines.push(
-      <NoticeLine
-        key="cancelled"
-        icon={InfoIcon}
-        text={t.home.outcomeCancelled}
-        testID="home_outcome_text"
-      />
-    );
-  }
-  if (lines.length === 0) {
+  const outcomeKind = resolveOutcomeNotice(outcome, hasPendingCleanups);
+  if (!hasPendingCleanups && !outcomeKind) {
     return null;
   }
-  return <View style={styles.notices}>{lines}</View>;
+  return (
+    <View style={styles.notices}>
+      <CleanupNotice isVisible={hasPendingCleanups} onRetry={onRetryCleanups} />
+      <OutcomeNotice outcomeKind={outcomeKind} />
+    </View>
+  );
 };
 
 const useHomeNoticesStyles = getResponsiveStylesHook(() =>

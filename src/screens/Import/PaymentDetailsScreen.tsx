@@ -33,6 +33,9 @@ export const PaymentDetailsScreen = () => {
       </ScreenLayout>
     );
   }
+  const amountText = formatMoney(paymentItem.amountMinor, payments.currency, language);
+  const cadenceText = describeCadence(paymentItem.cadence, language);
+  const lastChargeText = formatCalendarDate(paymentItem.lastSeen, language);
   return (
     <ScreenLayout testID="payment_details_screen" header={header}>
       <View style={styles.heading}>
@@ -44,17 +47,14 @@ export const PaymentDetailsScreen = () => {
       <Card>
         <InfoRow
           label={t.paymentDetails.amountLabel}
-          value={formatMoney(paymentItem.amountMinor, payments.currency, language)}
+          value={amountText}
           valueVariant="money"
           testID="payment_details_amount_text"
         />
-        <InfoRow
-          label={t.paymentDetails.cadenceLabel}
-          value={describeCadence(paymentItem.cadence, language)}
-        />
+        <InfoRow label={t.paymentDetails.cadenceLabel} value={cadenceText} />
         <InfoRow
           label={t.paymentDetails.lastChargeLabel}
-          value={formatCalendarDate(paymentItem.lastSeen, language)}
+          value={lastChargeText}
           valueVariant="money"
         />
         <InfoRow

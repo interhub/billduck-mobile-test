@@ -37,7 +37,11 @@ export const TRANSLATIONS_RU: Translation = {
     back: 'Назад',
     labelValue: (label: string, value: string) => `${label}: ${value}`,
     retry: 'Повторить',
-    cancel: 'Отмена'
+    cancel: 'Отмена',
+    chooseAnother: 'Выбрать другой файл',
+    noStatements: 'Выписок пока нет. Добавьте PDF или CSV, и уточка найдёт повторяющиеся платежи.',
+    repeatingPayments: (count: number) =>
+      `${count} ${pickRussianForm(count, 'повторяющийся платёж', 'повторяющихся платежа', 'повторяющихся платежей')}`
   },
   format: {
     decimalSeparator: ',',
@@ -68,16 +72,21 @@ export const TRANSLATIONS_RU: Translation = {
     gone_on_server: 'Нет на сервере'
   },
   home: {
-    empty: 'Выписок пока нет. Добавьте PDF или CSV, и уточка найдёт повторяющиеся платежи.',
     addStatement: 'Добавить выписку',
     addStatementBlocked: 'Сначала завершите или отмените текущую загрузку',
     currentStatement: 'Текущая выписка',
-    repeatingPayments: (count: number) =>
-      `${count} ${pickRussianForm(count, 'повторяющийся платёж', 'повторяющихся платежа', 'повторяющихся платежей')}`,
+    currentImportLabel: (title: string, phase: string) => `Текущая выписка. ${title}. ${phase}`,
+    openHint: {
+      report: 'Открывает отчёт',
+      status: 'Открывает статус'
+    },
     cleanupPending: 'Загрузка отменена. Удалим файл с сервера, если он успел дойти.',
-    outcomeDeleted: 'Выписка удалена. Сервер это подтвердил.',
-    outcomeGone: 'Сервер больше не знает об этой выписке. На телефоне от неё ничего не осталось.',
-    outcomeCancelled: 'Отменённая загрузка проверена: на сервере от неё ничего не осталось.',
+    outcome: {
+      deleted: 'Выписка удалена. Сервер это подтвердил.',
+      gone_on_server:
+        'Сервер больше не знает об этой выписке. На телефоне от неё ничего не осталось.',
+      upload_cancelled: 'Отменённая загрузка проверена: на сервере от неё ничего не осталось.'
+    },
     diagnostics: 'Диагностика'
   },
   importConfirm: {
@@ -100,8 +109,7 @@ export const TRANSLATIONS_RU: Translation = {
       unreadable: 'Файл не читается.'
     },
     sizeAgainstLimit: (size: string, limit: string) => `Его размер ${size}, предел ${limit}.`,
-    expectedFiles: 'Выберите банковскую выписку в PDF или CSV.',
-    chooseAnother: 'Выбрать другой файл'
+    expectedFiles: 'Выберите банковскую выписку в PDF или CSV.'
   },
   importStatus: {
     title: 'Импорт',

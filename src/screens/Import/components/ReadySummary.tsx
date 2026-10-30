@@ -1,22 +1,33 @@
+import {StyleSheet} from 'react-native';
 import {Card} from '@/src/components/ui/Card';
-import {TextLine} from '@/src/components/ui/TextLine';
-import {useTranslation} from '@/src/i18n/useTranslation';
+import {MonthlyTotal} from '@/src/components/ui/MonthlyTotal';
+import {SPACING} from '@/src/constants/UI_SIZES';
 import {StatementPayments} from '@/src/types/importDraft';
-import {formatMonthlyTotal} from '@/src/utils/format/formatMoney';
+import {BadgePhase} from '@/src/utils/import/importPhases';
+import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
 
 type ReadySummaryProps = {
-  payments: StatementPayments;
+  phase: BadgePhase;
+  payments: StatementPayments | null;
 };
 
 /** What the ready report holds, before it is opened: the monthly total, then the count. */
-export const ReadySummary = ({payments}: ReadySummaryProps) => {
-  const {t, language} = useTranslation();
+export const ReadySummary = ({phase, payments}: ReadySummaryProps) => {
+  const {styles} = useReadySummaryStyles();
+  if (phase !== 'ready' || !payments) {
+    return null;
+  }
   return (
     <Card>
-      <TextLine variant="money">
-        {formatMonthlyTotal(payments.items, payments.currency, language)}
-      </TextLine>
-      <TextLine variant="caption">{t.home.repeatingPayments(payments.items.length)}</TextLine>
+      <MonthlyTotal payments={payments} variant="money" style={styles.total} />
     </Card>
   );
 };
+
+const useReadySummaryStyles = getResponsiveStylesHook(() =>
+  StyleSheet.create({
+    total: {
+      gap: SPACING.md
+    }
+  })
+);

@@ -1,4 +1,4 @@
-import {StyleProp, StyleSheet, View, ViewStyle} from 'react-native';
+import {StyleSheet, View} from 'react-native';
 import Svg, {Circle, Path} from 'react-native-svg';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {LOGO, SPACING} from '@/src/constants/UI_SIZES';
@@ -24,55 +24,54 @@ const RECEIPT_PRINT = 'M36.5 17.3H40';
  */
 const BillDuckMark = () => {
   const {colors} = useBillDuckLogoStyles();
-  const line = colors.textOnAccent;
+  const lineColor = colors.textOnAccent;
   return (
     <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
       <Svg width={LOGO.markSize} height={LOGO.markSize} viewBox={VIEW_BOX}>
         <Path
           d={DUCK_BODY}
           fill={colors.accent}
-          stroke={line}
+          stroke={lineColor}
           strokeWidth={LINE_WIDTH}
           strokeLinejoin="round"
         />
         <Path
           d={DUCK_WING}
           fill={colors.accent}
-          stroke={line}
+          stroke={lineColor}
           strokeWidth={LINE_WIDTH}
           strokeLinejoin="round"
         />
-        <Circle {...DUCK_HEAD} fill={colors.accent} stroke={line} strokeWidth={LINE_WIDTH} />
+        <Circle {...DUCK_HEAD} fill={colors.accent} stroke={lineColor} strokeWidth={LINE_WIDTH} />
         <Path
           d={RECEIPT_BEAK}
           fill={colors.beak}
-          stroke={line}
+          stroke={lineColor}
           strokeWidth={LINE_WIDTH}
           strokeLinejoin="round"
         />
         <Path
           d={RECEIPT_PRINT}
-          stroke={line}
+          stroke={lineColor}
           strokeWidth={PRINT_LINE_WIDTH}
           strokeLinecap="round"
         />
-        <Circle {...DUCK_EYE} fill={line} />
+        <Circle {...DUCK_EYE} fill={lineColor} />
       </Svg>
     </View>
   );
 };
 
 type BillDuckLogoProps = {
-  style?: StyleProp<ViewStyle>;
   testID?: string;
 };
 
 /** The mark and the `BillDuck` wordmark in Unbounded; the wordmark is the screen header. */
-export const BillDuckLogo = ({style, testID}: BillDuckLogoProps) => {
+export const BillDuckLogo = ({testID}: BillDuckLogoProps) => {
   const {styles} = useBillDuckLogoStyles();
   const {t} = useTranslation();
   return (
-    <View style={[styles.logo, style]} testID={testID} collapsable={false}>
+    <View style={styles.logo} testID={testID} collapsable={false}>
       <BillDuckMark />
       <TextLine variant="display" accessibilityRole="header" style={styles.wordmark}>
         {t.common.appName}

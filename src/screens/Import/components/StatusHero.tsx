@@ -3,33 +3,15 @@ import {Animated, StyleSheet} from 'react-native';
 import {MOTION} from '@/src/constants/UI_MOTION';
 import {SPACING} from '@/src/constants/UI_SIZES';
 import {Illustration} from '@/src/components/ui/Illustration';
+import {OptionalText} from '@/src/components/ui/OptionalText';
 import {StatusBadge} from '@/src/components/ui/StatusBadge';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {useReduceMotion} from '@/src/hooks/sensors/useReduceMotion';
 import {StatusDescription} from '@/src/screens/Import/logic/describeImportStatus';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
 
-type OptionalLineProps = {
-  text: string | null;
-};
-
-const StatementTitleLine = ({text}: OptionalLineProps) => {
-  if (!text) {
-    return null;
-  }
-  return <TextLine variant="caption">{text}</TextLine>;
-};
-
-const DetailLine = ({text}: OptionalLineProps) => {
-  if (!text) {
-    return null;
-  }
-  return (
-    <TextLine variant="money" color="textMuted">
-      {text}
-    </TextLine>
-  );
-};
+/** A new phase starts dimmed and fades in to full opacity. */
+const PHASE_ENTER_OPACITY = 0.4;
 
 type StatusHeroProps = {
   description: StatusDescription;
@@ -37,7 +19,7 @@ type StatusHeroProps = {
   detail: string | null;
 };
 
-/** The large honest status. A new phase cross-fades in; under Reduce Motion it simply appears. */
+/** The large honest status. A new phase fades in; under Reduce Motion it simply appears. */
 export const StatusHero = ({description, title, detail}: StatusHeroProps) => {
   const {styles} = useStatusHeroStyles();
   const isReduceMotionEnabled = useReduceMotion();
@@ -47,23 +29,28 @@ export const StatusHero = ({description, title, detail}: StatusHeroProps) => {
       opacity.setValue(1);
       return;
     }
-    opacity.setValue(0.4);
-    Animated.timing(opacity, {
+    opacity.setValue(PHASE_ENTER_OPACITY);
+    const fadeIn = Animated.timing(opacity, {
       toValue: 1,
       duration: MOTION.durationSlow,
       easing: MOTION.easing,
       useNativeDriver: true
-    }).start();
+    });
+    fadeIn.start();
+    return () => {
+      fadeIn.stop();
+    };
   }, [description.badgePhase, isReduceMotionEnabled, opacity]);
+  const fadeStyle = {opacity};
   return (
-    <Animated.View style={[styles.hero, {opacity}]}>
+    <Animated.View style={[styles.hero, fadeStyle]}>
       <Illustration name={description.illustration} />
-      <StatementTitleLine text={title} />
+      <OptionalText text={title} variant="caption" />
       <StatusBadge phase={description.badgePhase} testID="import_status_phase_badge" />
       <TextLine variant="title" testID="import_status_explanation_text">
         {description.explanation}
       </TextLine>
-      <DetailLine text={detail} />
+      <OptionalText text={detail} variant="money" color="textMuted" />
     </Animated.View>
   );
 };

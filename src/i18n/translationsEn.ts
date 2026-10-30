@@ -17,7 +17,12 @@ export const TRANSLATIONS_EN = {
     back: 'Back',
     labelValue: (label: string, value: string) => `${label}: ${value}`,
     retry: 'Retry',
-    cancel: 'Cancel'
+    cancel: 'Cancel',
+    chooseAnother: 'Choose another file',
+    noStatements:
+      'No statements yet. Add a PDF or CSV and the duck will find payments that repeat.',
+    repeatingPayments: (count: number) =>
+      `${count} ${pickEnglishForm(count, 'repeating payment', 'repeating payments')}`
   },
   format: {
     decimalSeparator: '.',
@@ -47,17 +52,21 @@ export const TRANSLATIONS_EN = {
     gone_on_server: 'Not on the server'
   },
   home: {
-    empty: 'No statements yet. Add a PDF or CSV and the duck will find payments that repeat.',
     addStatement: 'Add statement',
     addStatementBlocked: 'Finish or cancel the current upload first',
     currentStatement: 'Current statement',
-    repeatingPayments: (count: number) =>
-      `${count} ${pickEnglishForm(count, 'repeating payment', 'repeating payments')}`,
+    currentImportLabel: (title: string, phase: string) => `Current statement. ${title}. ${phase}`,
+    openHint: {
+      report: 'Opens the report',
+      status: 'Opens the status'
+    },
     cleanupPending: "Upload cancelled. We'll delete the file from the server if it got there.",
-    outcomeDeleted: 'The statement is deleted. The server confirmed it.',
-    outcomeGone:
-      'The server no longer knows this statement. Nothing about it is left on this phone.',
-    outcomeCancelled: 'The cancelled upload is checked: nothing of it is left on the server.',
+    outcome: {
+      deleted: 'The statement is deleted. The server confirmed it.',
+      gone_on_server:
+        'The server no longer knows this statement. Nothing about it is left on this phone.',
+      upload_cancelled: 'The cancelled upload is checked: nothing of it is left on the server.'
+    },
     diagnostics: 'Diagnostics'
   },
   importConfirm: {
@@ -82,8 +91,7 @@ export const TRANSLATIONS_EN = {
     },
     sizeAgainstLimit: (size: string, limit: string) =>
       `Its size is ${size}, the limit is ${limit}.`,
-    expectedFiles: 'Choose a bank statement in PDF or CSV.',
-    chooseAnother: 'Choose another file'
+    expectedFiles: 'Choose a bank statement in PDF or CSV.'
   },
   importStatus: {
     title: 'Import',

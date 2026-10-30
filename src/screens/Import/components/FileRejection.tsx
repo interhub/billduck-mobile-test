@@ -19,12 +19,13 @@ const SizeAgainstLimit = ({rejection, sizeBytes}: FileRejectionProps) => {
   if (rejection !== STATEMENT_REJECTION.TOO_LARGE) {
     return null;
   }
+  const sizeText = t.importConfirm.sizeAgainstLimit(
+    formatExactBytes(sizeBytes, language),
+    formatExactBytes(LIMITS.MAX_FILE_SIZE_BYTES, language)
+  );
   return (
     <TextLine variant="money" testID="import_confirm_size_text">
-      {t.importConfirm.sizeAgainstLimit(
-        formatExactBytes(sizeBytes, language),
-        formatExactBytes(LIMITS.MAX_FILE_SIZE_BYTES, language)
-      )}
+      {sizeText}
     </TextLine>
   );
 };
