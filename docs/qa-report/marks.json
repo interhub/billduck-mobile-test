@@ -918,27 +918,27 @@
     {
       "box": [
         10,
-        126,
+        138,
         321,
-        254
+        292
       ],
       "arrow": "right"
     },
     {
       "box": [
-        10,
+        12,
+        312,
+        262,
+        420
+      ],
+      "arrow": "right"
+    },
+    {
+      "box": [
+        14,
+        526,
         318,
-        321,
-        601
-      ],
-      "arrow": "right"
-    },
-    {
-      "box": [
-        10,
-        525,
-        321,
-        688
+        684
       ],
       "arrow": "left"
     }
@@ -2060,18 +2060,18 @@
     {
       "box": [
         16,
-        222,
+        139,
         388,
-        332
+        309
       ],
       "arrow": "right"
     },
     {
       "box": [
         16,
-        391,
-        389,
-        593
+        312,
+        388,
+        484
       ],
       "arrow": "right"
     },
@@ -2079,7 +2079,7 @@
       "box": [
         16,
         605,
-        389,
+        388,
         686
       ],
       "arrow": "left"
@@ -2234,6 +2234,412 @@
         207
       ],
       "arrow": "right"
+    }
+  ],
+  "fix13_ios_d_replace_blocked.png": [
+    {
+      "box": [
+        10,
+        370,
+        321,
+        428
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        464,
+        321,
+        526
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        594,
+        321,
+        644
+      ],
+      "arrow": "left"
+    }
+  ],
+  "fix13_ios_e_replace_counters.png": [
+    {
+      "box": [
+        24,
+        145,
+        307,
+        192
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        24,
+        326,
+        307,
+        374
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        423,
+        321,
+        453
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        24,
+        503,
+        307,
+        550
+      ],
+      "arrow": "left"
+    }
+  ],
+  "fix13_ios_f_replace_done.png": [
+    {
+      "box": [
+        10,
+        99,
+        321,
+        161
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        300,
+        321,
+        362
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        350,
+        321,
+        431
+      ],
+      "arrow": "left"
+    }
+  ],
+  "fix15_ios_e_delete_down.png": [
+    {
+      "box": [
+        10,
+        332,
+        202,
+        372
+      ],
+      "arrow": "right"
+    },
+    {
+      "box": [
+        10,
+        370,
+        321,
+        428
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        464,
+        321,
+        526
+      ],
+      "arrow": "left"
+    }
+  ],
+  "fix15_ios_f_delete_back.png": [
+    {
+      "box": [
+        34,
+        129,
+        321,
+        160
+      ],
+      "arrow": "left"
+    }
+  ],
+  "fix15_ios_g_poll_down.png": [
+    {
+      "box": [
+        10,
+        332,
+        202,
+        372
+      ],
+      "arrow": "right"
+    },
+    {
+      "box": [
+        10,
+        370,
+        321,
+        428
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        466,
+        321,
+        508
+      ],
+      "arrow": "left"
+    }
+  ],
+  "fix15_ios_h_poll_back.png": [
+    {
+      "box": [
+        10,
+        250,
+        321,
+        312
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        300,
+        321,
+        363
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        501,
+        321,
+        564
+      ],
+      "arrow": "left"
+    }
+  ],
+  "fix14_android_d_replace_blocked.png": [
+    {
+      "box": [
+        10,
+        349,
+        314,
+        428
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        462,
+        314,
+        522
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        604,
+        314,
+        654
+      ],
+      "arrow": "left"
+    }
+  ],
+  "fix14_android_e_replace_counters.png": [
+    {
+      "box": [
+        23,
+        121,
+        301,
+        167
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        23,
+        296,
+        301,
+        342
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        389,
+        314,
+        418
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        23,
+        465,
+        301,
+        512
+      ],
+      "arrow": "left"
+    }
+  ],
+  "fix14_android_f_replace_done.png": [
+    {
+      "box": [
+        10,
+        124,
+        314,
+        184
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        317,
+        314,
+        377
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        27,
+        365,
+        314,
+        412
+      ],
+      "arrow": "left"
+    }
+  ],
+  "fix16_android_e_delete_down.png": [
+    {
+      "box": [
+        12,
+        313,
+        150,
+        351
+      ],
+      "arrow": "right"
+    },
+    {
+      "box": [
+        10,
+        349,
+        314,
+        406
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        440,
+        314,
+        500
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        585,
+        314,
+        645
+      ],
+      "arrow": "left"
+    }
+  ],
+  "fix16_android_f_delete_back.png": [
+    {
+      "box": [
+        10,
+        116,
+        314,
+        164
+      ],
+      "arrow": "left"
+    }
+  ],
+  "fix16_android_g_poll_down.png": [
+    {
+      "box": [
+        12,
+        313,
+        150,
+        351
+      ],
+      "arrow": "right"
+    },
+    {
+      "box": [
+        10,
+        349,
+        314,
+        406
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        440,
+        314,
+        500
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        585,
+        314,
+        645
+      ],
+      "arrow": "left"
+    }
+  ],
+  "fix16_android_h_poll_back.png": [
+    {
+      "box": [
+        10,
+        275,
+        314,
+        335
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        323,
+        314,
+        383
+      ],
+      "arrow": "left"
+    },
+    {
+      "box": [
+        10,
+        517,
+        314,
+        577
+      ],
+      "arrow": "left"
     }
   ]
 }
