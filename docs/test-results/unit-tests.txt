@@ -1,0 +1,204 @@
+date: 2026-10-30 04:04:02
+command: npm test -- --verbose
+
+
+> billduck@1.0.0 test
+> jest --verbose
+
+PASS src/utils/format/__tests__/formatDate.test.ts
+  formatCalendarDate
+    ✓ formats server dates as calendar days in both languages (3 ms)
+    ✓ never shifts the day west of UTC, where new Date() would show the previous one
+    ✓ returns an unexpected value as it is (1 ms)
+  local moments
+    ✓ formats the date and time of an upload
+    ✓ formats the time of a server answer with seconds (1 ms)
+
+PASS src/utils/files/__tests__/checkStatementFile.test.ts
+  detectStatementFormat on the kit fixtures
+    ✓ accepts statement.pdf and statement.csv by their first bytes (7 ms)
+    ✓ refuses spoofed.pdf: text that only pretends to be a PDF
+  detectStatementFormat, the same rules as the server
+    ✓ refuses a CSV with \r\n line ends (1 ms)
+    ✓ refuses a CSV that starts with a byte order mark
+    ✓ refuses a header in another case (1 ms)
+  checkStatementFile
+    ✓ accepts exactly 10 MiB (2 ms)
+    ✓ refuses 10 MiB and one byte without looking at the bytes
+    ✓ refuses an empty file
+    ✓ calls spoofed.pdf a fake PDF and the same text under another name unsupported (1 ms)
+    ✓ refuses a file whose bytes could not be read
+    ✓ trusts the bytes over the name: real CSV bytes under a .pdf name pass as CSV
+  claimsToBePdf
+    ✓ reads the extension in any case and the PDF type
+
+PASS src/utils/import/__tests__/revisionGuard.test.ts
+  judgeJobAnswer
+    ✓ applies a newer revision (5 ms)
+    ✓ skips processing r2 that arrives after ready r3
+    ✓ keeps the same revision unchanged (1 ms)
+    ✓ takes ready with the same revision when the phone has no payments after a restart
+    ✓ does not let the restart exception apply to an older ready
+
+PASS src/utils/promise/__tests__/promiseHelpers.test.ts
+  runDelayLadder
+    ✓ waits before every attempt and stops at the first result (5 ms)
+    ✓ returns null when every attempt failed (1 ms)
+  runPollLoop
+    ✓ doubles the pause after failures up to the maximum and resets it after an answer (1 ms)
+    ✓ never starts a read when it should not continue (1 ms)
+    ✓ caps the backoff (1 ms)
+  createSerialQueue
+    ✓ runs tasks one after another even when the first one is slower (22 ms)
+    ✓ keeps running after a task fails (7 ms)
+
+PASS src/api/importsApi/__tests__/importsApi.test.ts
+  readImportJob
+    ✓ reads a ready job with its payments (3 ms)
+    ✓ refuses a ready job without payments or currency, an unknown status and broken JSON (1 ms)
+  createImport
+    ✓ sends the bytes from disk with the headers of the contract (3 ms)
+    ✓ takes a 202 as a queued job, never as a report
+    ✓ classifies refusals, server faults and unreadable bodies (1 ms)
+    ✓ reports a dropped connection as NETWORK, without the error text (1 ms)
+    ✓ stops the upload after 30 seconds and reports TIMEOUT (2 ms)
+  reads and deletes
+    ✓ treats a 404 by key as "not found at this instant", not as a failure
+    ✓ reads a ready job with its payments (1 ms)
+    ✓ sends the delete key and reports a 503 as a server failure
+
+PASS src/utils/format/__tests__/formatFileSize.test.ts
+  formatFileSize
+    ✓ uses bytes, kilobytes and megabytes in both languages
+    ✓ shows the exact byte count for a size at the limit (1 ms)
+  formatStatementTitle
+    ✓ builds the on-screen title from the date, format and size, never from the file name
+
+PASS src/services/importController/__tests__/importController.delete.test.ts
+  import controller: deleting
+    ✓ says deleted only after a GET returns deleted (16 ms)
+    ✓ hands a deleted import over to its outcome in one update, so no screen sees an empty state (3 ms)
+    ✓ never says deleted on a 503, and Retry with the same delete key reaches deleted (4 ms)
+    ✓ says not deleted when the server is silent before the DELETE, and Retry deletes (4 ms)
+    ✓ checks the job when the DELETE arrived but its answer was lost, and waits for deleted (2 ms)
+    ✓ never deletes a stranger job that took the same number after a mock reset (3 ms)
+    ✓ marks a stored deletion that never reached the server as not deleted after a relaunch (2 ms)
+    ✓ cancels a queued import through the same deletion (2 ms)
+  import controller: replacing the previous statement
+    ✓ deletes the previous statement before sending the new one (4 ms)
+    ✓ does not send the new statement while the old one fails to delete (8 ms)
+  import controller: cancel with cleanup and late answers
+    ✓ deletes a cancelled upload on the server once the server answers again (5 ms)
+    ✓ forgets a cancelled upload that never reached the server after one more look (3 ms)
+    ✓ drops the answer of an upload cancelled while it was in flight (4 ms)
+
+PASS src/services/importController/__tests__/importController.recovery.test.ts
+  import controller: recovery after a lost answer
+    ✓ finds the job by key after a lost_ack without any button, one job only (18 ms)
+    ✓ keeps one job when the app is restarted while the lost upload is being recovered (3 ms)
+    ✓ re-sends the same key and bytes when the key is not known yet, and gets the same job (2 ms)
+    ✓ says the server is unavailable after three silent lookups, and "Retry" finishes the upload (4 ms)
+    ✓ waits in the background during the recovery and continues on return (2 ms)
+    ✓ says honestly that the file is gone when the copy was erased before the outcome was known (5 ms)
+  import controller: polling
+    ✓ shows reconnecting after two silent reads, then server_unavailable after 30 seconds, and Retry resumes (7 ms)
+    ✓ stops polling in the background and reads again on return (3 ms)
+    ✓ moves a job the server no longer knows to gone_on_server, never to deleted (3 ms)
+    ✓ hands a gone job over to its outcome in one update, so no screen sees an empty state (2 ms)
+    ✓ never takes a stranger job with the same number after a mock reset and a relaunch (2 ms)
+    ✓ never reads a stranger job with the same number while the app keeps running (14 ms)
+    ✓ skips processing r2 after ready r3 and keeps the report (5 ms)
+    ✓ reads the payments again after a relaunch and polls an unfinished job without sending (3 ms)
+
+PASS src/utils/import/__tests__/importReducer.test.ts
+  importReducer: upload
+    ✓ turns a 202 into queued r1 and keeps the job id (5 ms)
+    ✓ never treats the 202 as a ready report
+    ✓ moves a lost answer to reconnecting and then to server_unavailable (1 ms)
+    ✓ accepts the job found by key while reconnecting (2 ms)
+    ✓ turns a 4xx into failed without a retry path (1 ms)
+    ✓ allows "Send again" only from not_received
+    ✓ marks a lost private copy as failed while the outcome is unknown (1 ms)
+  importReducer: job answers
+    ✓ moves queued to processing to ready
+    ✓ does not roll back from ready r3 to processing r2
+    ✓ ignores an answer about another job (1 ms)
+    ✓ ignores a late upload answer once the job is known
+    ✓ returns a job that lost its connection to its last status when the server answers again
+  importReducer: deletion
+    ✓ keeps the first delete key for every retry (1 ms)
+    ✓ says deleted only after the server answers deleted
+    ✓ stays deleting when a restart refills ready payments before the DELETE is repeated (1 ms)
+    ✓ marks a 404 for the job id as gone on the server, not as deleted
+  importReducer: refused status reads
+    ✓ stops a queued job as failed on a 4xx status read (1 ms)
+    ✓ turns a refused read during deletion into delete_failed, never into deleted
+    ✓ ignores a refused read on a ready job
+  importReducer: binding to the operation
+    ✓ drops every answer once the operation has no job to bind it to
+    ✓ never moves a deleted job back, whatever arrives late (1 ms)
+
+PASS src/utils/import/__tests__/importTimeline.test.ts
+  appendTimelineEntry
+    ✓ folds the same unchanged answer into one row with a counter (2 ms)
+    ✓ never folds a skipped stale answer: every one stays visible (1 ms)
+    ✓ keeps only the newest rows within the limit
+
+PASS src/services/importController/__tests__/operationRepository.test.ts
+  operationRepository
+    ✓ stores the operation and the cleanup list and reads them back (1 ms)
+    ✓ stores nothing but the minimal operation: no file name, no payments
+    ✓ removes the record once nothing is left to keep (1 ms)
+    ✓ drops a damaged record instead of crashing
+
+PASS src/services/importController/__tests__/importController.send.test.ts
+  import controller: sending
+    ✓ reaches ready through queued and processing; the 202 is never the report (13 ms)
+    ✓ stores the operation with its key before the POST, and a relaunch only reads by key (8 ms)
+    ✓ gives one key and one POST for a double press on "Send" (7 ms)
+    ✓ stops at failed on a 4xx answer to the upload, with no repeat (2 ms)
+    ✓ keeps the Russian file name away from the server and the logs (4 ms)
+  import controller: checks before any network
+    ✓ rejects spoofed.pdf as a fake PDF without a request (1 ms)
+    ✓ rejects a file above 10 MiB by its reported size before reading it (1 ms)
+    ✓ accepts exactly 10 MiB and rejects one byte more (3 ms)
+    ✓ rejects an empty file, a CSV with \r\n and a CSV with a byte order mark (1 ms)
+    ✓ returns calmly when the picker is cancelled, leaving no draft and no copy (1 ms)
+    ✓ says the file cannot be read when the picker fails, leaving no copy (1 ms)
+    ✓ removes the private copy when the confirm screen is cancelled (1 ms)
+
+PASS src/utils/files/__tests__/buildServerFileName.test.ts
+  buildServerFileName
+    ✓ builds statement-YYYYMMDD-HHMM with the format as the extension, from the local time (1 ms)
+    ✓ uses only Latin letters, digits, a hyphen and a dot, safe for an HTTP header
+
+PASS src/utils/format/__tests__/formatMoney.test.ts
+  money in minor units
+    ✓ sums integers, never floats
+    ✓ gives the monthly total of the mock report in both languages
+    ✓ formats one payment with the decimal separator of the language
+    ✓ groups thousands and keeps the sign (1 ms)
+
+PASS src/components/ui/__tests__/TextLine.test.tsx
+  TextLine keeps words whole at large system font sizes
+    ✓ shrinks a title whose word broke in the middle, and stops once the words are whole (60 ms)
+    ✓ leaves lines that end between words alone (3 ms)
+    ✓ never goes below the size the text has at the standard system setting (7 ms)
+    ✓ does not watch the layout at the standard system size (1 ms)
+
+PASS src/i18n/__tests__/languageSwitch.test.tsx
+  language follows the system while the app runs
+    ✓ switches the texts when the app returns to the foreground after a language change (58 ms)
+
+PASS src/hooks/import/__tests__/useImportSubject.test.ts
+  useImportSubject
+    ✓ keeps the deleted phase of a closing operation before its outcome is stored (7 ms)
+    ✓ keeps the gone_on_server phase of a closing operation before its outcome is stored (1 ms)
+    ✓ has no subject when there is no operation and no outcome (1 ms)
+
+Test Suites: 17 passed, 17 total
+Tests:       123 passed, 123 total
+Snapshots:   0 total
+Time:        1.529 s, estimated 2 s
+
+result: exit code 0

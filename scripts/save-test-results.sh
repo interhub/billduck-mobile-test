@@ -15,7 +15,7 @@ run() {
   shift
   local file="$OUT/$name.txt"
   {
-    echo "date: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+    echo "date: $(date '+%Y-%m-%d %H:%M:%S')"
     echo "command: $*"
     echo
   } > "$file"
