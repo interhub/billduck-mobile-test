@@ -23,18 +23,17 @@ const importsDirectory = () => new Directory(Paths.cache, IMPORTS_DIRECTORY);
 
 const copyOf = (operationId: string) => new File(importsDirectory(), operationId);
 
-/** Logs a failed file step by its kind only: file errors carry paths with the original name. */
-const logFileFailure = (error: unknown) => {
-  logger.w(LOG_NAME.warning_log, {type: LOG_TYPE.pick_file, error_kind: resolveErrorKind(error)});
-};
-
 const deleteQuietly = (entry: File | Directory) => {
   try {
     if (entry.exists) {
       entry.delete();
     }
   } catch (error) {
-    logFileFailure(error);
+    logger.e(LOG_NAME.error_log, {
+      type: LOG_TYPE.pick_file,
+      error_kind: resolveErrorKind(error),
+      http_status: null
+    });
   }
 };
 
@@ -64,7 +63,11 @@ const clearPickerLeftovers = () => {
       }
     }
   } catch (error) {
-    logFileFailure(error);
+    logger.e(LOG_NAME.error_log, {
+      type: LOG_TYPE.pick_file,
+      error_kind: resolveErrorKind(error),
+      http_status: null
+    });
   }
 };
 
@@ -79,21 +82,22 @@ const ensureImportsDirectory = () => {
  * The private copies of statements in `Paths.cache/imports/`, named by operation id and never by
  * the original name. Android hands the picker result as a `content://` link whose access ends
  * with the activity, so the copy is what a resend after a restart reads. Nothing here reads a
- * whole file into memory, and nothing throws: failures come back as results or null.
+ * whole file into memory, and nothing throws: failures come back as results or null. A failure
+ * is logged by its kind only, because file errors carry paths with the original name.
  */
 export const statementFileStore: StatementFileStore = {
   pickStatement: async (operationId) => {
     try {
-      const result = await getDocumentAsync({
+      const pickerResult = await getDocumentAsync({
         type: PICKER_TYPES,
         copyToCacheDirectory: true,
         multiple: false
       });
-      if (result.canceled) {
+      if (pickerResult.canceled) {
         clearPickerLeftovers();
         return {success: true, payload: null};
       }
-      const [asset] = result.assets;
+      const [asset] = pickerResult.assets;
       ensureImportsDirectory();
       new File(asset.uri).moveSync(copyOf(operationId));
       clearPickerLeftovers();
@@ -106,10 +110,11 @@ export const statementFileStore: StatementFileStore = {
         }
       };
     } catch (error) {
-      logFileFailure(error);
+      const kind = resolveErrorKind(error);
+      logger.e(LOG_NAME.error_log, {type: LOG_TYPE.pick_file, error_kind: kind, http_status: null});
       clearPickerLeftovers();
       deleteQuietly(copyOf(operationId));
-      return {success: false, error: {kind: resolveErrorKind(error), httpStatus: null}};
+      return {success: false, error: {kind, httpStatus: null}};
     }
   },
   readCopySize: (operationId) => {
@@ -120,7 +125,11 @@ export const statementFileStore: StatementFileStore = {
       }
       return file.size;
     } catch (error) {
-      logFileFailure(error);
+      logger.e(LOG_NAME.error_log, {
+        type: LOG_TYPE.pick_file,
+        error_kind: resolveErrorKind(error),
+        http_status: null
+      });
       return null;
     }
   },
@@ -133,7 +142,11 @@ export const statementFileStore: StatementFileStore = {
         handle.close();
       }
     } catch (error) {
-      logFileFailure(error);
+      logger.e(LOG_NAME.error_log, {
+        type: LOG_TYPE.pick_file,
+        error_kind: resolveErrorKind(error),
+        http_status: null
+      });
       return null;
     }
   },
@@ -141,7 +154,11 @@ export const statementFileStore: StatementFileStore = {
     try {
       return copyOf(operationId).exists;
     } catch (error) {
-      logFileFailure(error);
+      logger.e(LOG_NAME.error_log, {
+        type: LOG_TYPE.pick_file,
+        error_kind: resolveErrorKind(error),
+        http_status: null
+      });
       return false;
     }
   },
@@ -162,7 +179,11 @@ export const statementFileStore: StatementFileStore = {
         }
       }
     } catch (error) {
-      logFileFailure(error);
+      logger.e(LOG_NAME.error_log, {
+        type: LOG_TYPE.pick_file,
+        error_kind: resolveErrorKind(error),
+        http_status: null
+      });
     }
   }
 };

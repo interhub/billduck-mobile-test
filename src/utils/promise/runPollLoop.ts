@@ -1,3 +1,4 @@
+import {LIMITS} from '@/src/constants/LIMITS';
 import {wait, WaitFunction} from '@/src/utils/promise/wait';
 
 export enum POLL_STEP {
@@ -18,7 +19,7 @@ type PollLoopOptions = {
 };
 
 export const nextBackoffDelay = (currentDelayMs: number, maxBackoffMs: number): number => {
-  return Math.min(currentDelayMs * 2, maxBackoffMs);
+  return Math.min(currentDelayMs * LIMITS.POLL_BACKOFF_FACTOR, maxBackoffMs);
 };
 
 const nextPause = (

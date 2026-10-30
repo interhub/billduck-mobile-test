@@ -11,6 +11,8 @@ export const LIMITS = {
   RECOVERY_DELAYS_MS: [1_000, 2_000, 4_000],
   POLL_INTERVAL_MS: 500,
   POLL_MAX_BACKOFF_MS: 4_000,
+  /** After a failed status read the pause before the next one grows by this factor. */
+  POLL_BACKOFF_FACTOR: 2,
   /** Failed status reads in a row before the timeline says it is reconnecting. */
   POLL_FAILURES_BEFORE_RECONNECTING: 2,
   /** Time without any server answer before polling stops and offers "Retry". */

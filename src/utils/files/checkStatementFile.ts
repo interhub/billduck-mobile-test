@@ -16,8 +16,8 @@ type StatementCheckResult =
 
 type StatementCandidate = {
   sizeBytes: number;
-  /** The first bytes of the file; null when they could not be read. */
-  header: Uint8Array | null;
+  /** Reads the first bytes of the file, only once the size passed; null when unreadable. */
+  readHeader: () => Uint8Array | null;
   /** Whether the picked name or type claims a PDF: it picks the message, never the verdict. */
   claimsPdf: boolean;
 };
@@ -67,13 +67,14 @@ const rejectFormat = (claimsPdf: boolean): StatementCheckResult => {
 /** The verdict before any network: size first, then the first bytes, never the extension or MIME. */
 export const checkStatementFile = ({
   sizeBytes,
-  header,
+  readHeader,
   claimsPdf
 }: StatementCandidate): StatementCheckResult => {
   const sizeRejection = checkStatementSize(sizeBytes);
   if (sizeRejection) {
     return {success: false, reason: sizeRejection};
   }
+  const header = readHeader();
   if (!header) {
     return {success: false, reason: STATEMENT_REJECTION.UNREADABLE};
   }

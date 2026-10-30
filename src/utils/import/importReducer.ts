@@ -1,6 +1,6 @@
 import {DELETION_STATUSES, IMPORT_STATUS} from '@/src/constants/IMPORT_STATUS';
 import {ImportJob} from '@/src/types/importApi';
-import {ImportOperation, ImportPhase} from '@/src/types/importOperation';
+import {ImportFailure, ImportOperation, ImportPhase} from '@/src/types/importOperation';
 import {
   canDeleteOnServer,
   DELETION_PHASES,
@@ -83,6 +83,22 @@ const ignore = (operation: ImportOperation): ImportTransition => {
   return {operation, accepted: false, verdict: null};
 };
 
+/** The event moves the operation only when it fits the phase; otherwise nothing changes. */
+const moveWhen = (
+  operation: ImportOperation,
+  isAllowed: boolean,
+  change: Partial<Pick<ImportOperation, 'phase' | 'failure' | 'deleteKey'>>
+): ImportTransition => {
+  if (!isAllowed) {
+    return ignore(operation);
+  }
+  return accept({...operation, ...change});
+};
+
+const serverRejection = (httpStatus: number | null): ImportFailure => {
+  return {reason: 'server_rejected', httpStatus};
+};
+
 const applyJobAnswer = (
   operation: ImportOperation,
   job: ImportJob,
@@ -120,14 +136,8 @@ const applyJobRejection = (
   if (operation.phase === 'deleting') {
     return accept({...operation, phase: 'delete_failed'});
   }
-  if (operation.phase === 'queued' || operation.phase === 'processing') {
-    return accept({
-      ...operation,
-      phase: 'failed',
-      failure: {reason: 'server_rejected', httpStatus}
-    });
-  }
-  return ignore(operation);
+  const isRunning = operation.phase === 'queued' || operation.phase === 'processing';
+  return moveWhen(operation, isRunning, {phase: 'failed', failure: serverRejection(httpStatus)});
 };
 
 const applyUploadAccepted = (operation: ImportOperation, job: ImportJob): ImportTransition => {
@@ -144,83 +154,73 @@ const applyUploadAccepted = (operation: ImportOperation, job: ImportJob): Import
   });
 };
 
+/** The events of an upload whose job is not known yet. */
+type UploadEvent = Extract<
+  ImportEvent,
+  {
+    type:
+      | 'upload_rejected'
+      | 'upload_outcome_unknown'
+      | 'recovery_started'
+      | 'recovery_exhausted'
+      | 'not_received'
+      | 'resend_requested'
+      | 'file_missing';
+  }
+>;
+
+const applyUploadEvent = (operation: ImportOperation, event: UploadEvent): ImportTransition => {
+  const isAwaiting = isAwaitingUploadOutcome(operation);
+  switch (event.type) {
+    case 'upload_rejected':
+      return moveWhen(operation, isUploadInFlight(operation), {
+        phase: 'failed',
+        failure: serverRejection(event.httpStatus)
+      });
+    case 'upload_outcome_unknown':
+      return moveWhen(operation, isUploadInFlight(operation), {phase: 'reconnecting'});
+    case 'recovery_started':
+      return moveWhen(operation, isAwaiting && operation.phase !== 'not_received', {
+        phase: 'reconnecting'
+      });
+    case 'recovery_exhausted':
+      return moveWhen(operation, isAwaiting, {phase: 'server_unavailable'});
+    case 'not_received':
+      return moveWhen(operation, isAwaiting, {phase: 'not_received'});
+    case 'resend_requested':
+      return moveWhen(operation, operation.jobId === null && operation.phase === 'not_received', {
+        phase: 'uploading'
+      });
+    case 'file_missing':
+      return moveWhen(operation, isAwaiting, {phase: 'failed', failure: {reason: 'file_missing'}});
+  }
+};
+
 /**
  * Pure phase transitions of the import operation, without React and without network. An event
  * that does not fit the current phase is ignored, so a late answer never moves an operation
- * that went on without it.
+ * that went on without it. Every event has its case: a new event does not compile until it does.
  */
 export const importReducer = (operation: ImportOperation, event: ImportEvent): ImportTransition => {
   switch (event.type) {
     case 'upload_accepted':
       return applyUploadAccepted(operation, event.job);
-    case 'upload_rejected':
-      if (!isUploadInFlight(operation)) {
-        return ignore(operation);
-      }
-      return accept({
-        ...operation,
-        phase: 'failed',
-        failure: {reason: 'server_rejected', httpStatus: event.httpStatus}
-      });
-    case 'upload_outcome_unknown':
-      if (!isUploadInFlight(operation)) {
-        return ignore(operation);
-      }
-      return accept({...operation, phase: 'reconnecting'});
-    case 'recovery_started':
-      if (!isAwaitingUploadOutcome(operation) || operation.phase === 'not_received') {
-        return ignore(operation);
-      }
-      return accept({...operation, phase: 'reconnecting'});
-    case 'recovery_exhausted':
-      if (!isAwaitingUploadOutcome(operation)) {
-        return ignore(operation);
-      }
-      return accept({...operation, phase: 'server_unavailable'});
-    case 'not_received':
-      if (!isAwaitingUploadOutcome(operation)) {
-        return ignore(operation);
-      }
-      return accept({...operation, phase: 'not_received'});
-    case 'resend_requested':
-      if (operation.jobId !== null || operation.phase !== 'not_received') {
-        return ignore(operation);
-      }
-      return accept({...operation, phase: 'uploading'});
-    case 'file_missing':
-      if (!isAwaitingUploadOutcome(operation)) {
-        return ignore(operation);
-      }
-      return accept({...operation, phase: 'failed', failure: {reason: 'file_missing'}});
     case 'job_answer':
       return applyJobAnswer(operation, event.job, event.hasItems);
     case 'job_rejected':
       return applyJobRejection(operation, event.httpStatus);
     case 'connection_lost':
-      if (!hasServerJob(operation)) {
-        return ignore(operation);
-      }
-      return accept({...operation, phase: 'server_unavailable'});
+      return moveWhen(operation, hasServerJob(operation), {phase: 'server_unavailable'});
     case 'delete_requested':
-      if (!canDeleteOnServer(operation)) {
-        return ignore(operation);
-      }
-      return accept({
-        ...operation,
+      return moveWhen(operation, canDeleteOnServer(operation), {
         deleteKey: operation.deleteKey ?? event.deleteKey,
         phase: 'deleting'
       });
     case 'delete_failed':
-      if (operation.phase !== 'deleting') {
-        return ignore(operation);
-      }
-      return accept({...operation, phase: 'delete_failed'});
+      return moveWhen(operation, operation.phase === 'deleting', {phase: 'delete_failed'});
     case 'gone_on_server':
-      if (operation.jobId === null) {
-        return ignore(operation);
-      }
-      return accept({...operation, phase: 'gone_on_server'});
+      return moveWhen(operation, operation.jobId !== null, {phase: 'gone_on_server'});
     default:
-      return ignore(operation);
+      return applyUploadEvent(operation, event);
   }
 };

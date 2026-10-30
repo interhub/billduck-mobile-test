@@ -26,7 +26,10 @@ describe('operationRepository', () => {
     const repository = createOperationRepository(AsyncStorage);
     const cleanup = {idempotencyKey: 'key-0000-0002', jobId: null, deleteKey: null};
     await repository.save({operation: OPERATION, pendingCleanups: [cleanup]});
-    expect(await repository.load()).toEqual({operation: OPERATION, pendingCleanups: [cleanup]});
+    expect(await repository.load()).toEqual({
+      success: true,
+      payload: {operation: OPERATION, pendingCleanups: [cleanup]}
+    });
   });
 
   it('stores nothing but the minimal operation: no file name, no payments', async () => {
@@ -45,8 +48,8 @@ describe('operationRepository', () => {
   it('drops a damaged record instead of crashing', async () => {
     await AsyncStorage.setItem('billduck.import_operation.v1', '{"operation":{"phase":"flying"}}');
     expect(await createOperationRepository(AsyncStorage).load()).toEqual({
-      operation: null,
-      pendingCleanups: []
+      success: true,
+      payload: {operation: null, pendingCleanups: []}
     });
   });
 });

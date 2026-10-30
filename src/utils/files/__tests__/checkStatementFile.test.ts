@@ -47,7 +47,7 @@ describe('checkStatementFile', () => {
     expect(
       checkStatementFile({
         sizeBytes: LIMITS.MAX_FILE_SIZE_BYTES,
-        header: csvHeader,
+        readHeader: () => csvHeader,
         claimsPdf: false
       })
     ).toEqual({
@@ -60,7 +60,7 @@ describe('checkStatementFile', () => {
     expect(
       checkStatementFile({
         sizeBytes: LIMITS.MAX_FILE_SIZE_BYTES + 1,
-        header: null,
+        readHeader: () => null,
         claimsPdf: false
       })
     ).toEqual({
@@ -70,7 +70,9 @@ describe('checkStatementFile', () => {
   });
 
   it('refuses an empty file', () => {
-    expect(checkStatementFile({sizeBytes: 0, header: new Uint8Array(), claimsPdf: false})).toEqual({
+    expect(
+      checkStatementFile({sizeBytes: 0, readHeader: () => new Uint8Array(), claimsPdf: false})
+    ).toEqual({
       success: false,
       reason: STATEMENT_REJECTION.EMPTY
     });
@@ -78,25 +80,31 @@ describe('checkStatementFile', () => {
 
   it('calls spoofed.pdf a fake PDF and the same text under another name unsupported', () => {
     const spoofed = header(readFixture('spoofed.pdf'));
-    expect(checkStatementFile({sizeBytes: 84, header: spoofed, claimsPdf: true})).toEqual({
-      success: false,
-      reason: STATEMENT_REJECTION.FAKE_PDF
-    });
-    expect(checkStatementFile({sizeBytes: 84, header: spoofed, claimsPdf: false})).toEqual({
+    expect(checkStatementFile({sizeBytes: 84, readHeader: () => spoofed, claimsPdf: true})).toEqual(
+      {
+        success: false,
+        reason: STATEMENT_REJECTION.FAKE_PDF
+      }
+    );
+    expect(
+      checkStatementFile({sizeBytes: 84, readHeader: () => spoofed, claimsPdf: false})
+    ).toEqual({
       success: false,
       reason: STATEMENT_REJECTION.UNSUPPORTED
     });
   });
 
   it('refuses a file whose bytes could not be read', () => {
-    expect(checkStatementFile({sizeBytes: 112, header: null, claimsPdf: false})).toEqual({
+    expect(checkStatementFile({sizeBytes: 112, readHeader: () => null, claimsPdf: false})).toEqual({
       success: false,
       reason: STATEMENT_REJECTION.UNREADABLE
     });
   });
 
   it('trusts the bytes over the name: real CSV bytes under a .pdf name pass as CSV', () => {
-    expect(checkStatementFile({sizeBytes: 112, header: csvHeader, claimsPdf: true})).toEqual({
+    expect(
+      checkStatementFile({sizeBytes: 112, readHeader: () => csvHeader, claimsPdf: true})
+    ).toEqual({
       success: true,
       format: 'csv'
     });

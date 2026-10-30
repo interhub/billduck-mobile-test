@@ -1,4 +1,4 @@
-import {ImportDraft} from '@/src/types/importDraft';
+import {ConfirmedDraft, ImportDraft} from '@/src/types/importDraft';
 import {ImportOperation, ImportPhase} from '@/src/types/importOperation';
 
 export type BadgePhase = Exclude<ImportPhase, 'validating' | 'rejected' | 'confirming'>;
@@ -67,6 +67,11 @@ export const canDeleteOnServer = (operation: ImportOperation): boolean => {
 
 export const isPolling = (operation: ImportOperation | null): boolean => {
   return operation !== null && operation.jobId !== null && POLLING_PHASES.includes(operation.phase);
+};
+
+/** The check passed: the draft holds its format, its key and its server name. */
+export const isConfirmedDraft = (draft: ImportDraft | null): draft is ConfirmedDraft => {
+  return draft?.phase === 'confirming' || draft?.phase === 'replacing_previous';
 };
 
 /** A new statement waits for the previous one to leave the server before it is sent. */

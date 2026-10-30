@@ -11,9 +11,9 @@ export const runDelayLadder = async <T>(
 ): Promise<T | null> => {
   for (const [delayIndex, delayMs] of delays.entries()) {
     await waitFor(delayMs);
-    const result = await attempt(delayIndex + 1);
-    if (result !== null) {
-      return result;
+    const attemptResult = await attempt(delayIndex + 1);
+    if (attemptResult !== null) {
+      return attemptResult;
     }
   }
   return null;
