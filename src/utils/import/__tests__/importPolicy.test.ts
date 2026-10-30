@@ -1,5 +1,4 @@
 import {IMPORT_STATUS} from '@/src/constants/IMPORT_STATUS';
-import {ImportOperation} from '@/src/types/importOperation';
 import {ERROR_KIND} from '@/src/utils/errors/resolveErrorKind';
 import {
   isHardRejection,
@@ -10,21 +9,7 @@ import {
   resolveUploadEvent
 } from '@/src/utils/import/importPolicy';
 import {TIMELINE_EVENT} from '@/src/utils/import/importTimeline';
-
-const OPERATION: ImportOperation = {
-  operationId: 'op-1',
-  idempotencyKey: 'key-0000-0001',
-  deleteKey: null,
-  phase: 'uploading',
-  jobId: null,
-  revision: 0,
-  serverStatus: null,
-  failure: null,
-  file: {sizeBytes: 112, format: 'csv'},
-  serverFileName: 'statement-20261029-1432.csv',
-  createdAt: '2026-10-29T13:32:00.000Z',
-  updatedAt: '2026-10-29T13:32:00.000Z'
-};
+import {buildTestJob, buildTestOperation} from './importFixtures';
 
 describe('importPolicy', () => {
   it('repeats no upload after a 4xx, but every other failure stays unknown', () => {
@@ -35,13 +20,7 @@ describe('importPolicy', () => {
   });
 
   it('records a found key as 200 and a missing one as 404', () => {
-    const job = {
-      jobId: 'job-demo-001',
-      status: IMPORT_STATUS.QUEUED,
-      revision: 1,
-      currency: null,
-      items: null
-    };
+    const job = buildTestJob(IMPORT_STATUS.QUEUED, 1);
     expect(keyLookupStatus(job)).toBe(200);
     expect(keyLookupStatus(null)).toBe(404);
   });
@@ -64,7 +43,7 @@ describe('importPolicy', () => {
   });
 
   it('keeps only the copy of the stored operation at launch', () => {
-    expect(listReferencedCopies(OPERATION)).toEqual(['op-1']);
+    expect(listReferencedCopies(buildTestOperation())).toEqual(['op-1']);
     expect(listReferencedCopies(null)).toEqual([]);
   });
 });

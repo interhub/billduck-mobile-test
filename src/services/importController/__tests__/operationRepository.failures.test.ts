@@ -3,23 +3,16 @@ import {
   createOperationRepository,
   OPERATION_STORAGE_KEY
 } from '@/src/services/importController/operationRepository';
-import {ImportOperation} from '@/src/types/importOperation';
 import {ERROR_KIND} from '@/src/utils/errors/resolveErrorKind';
+import {buildTestOperation} from '@/src/utils/import/__tests__/importFixtures';
 
-const OPERATION: ImportOperation = {
-  operationId: 'op-1',
-  idempotencyKey: 'key-0000-0001',
+const OPERATION = buildTestOperation({
   deleteKey: 'key-0000-0003',
   phase: 'failed',
   jobId: 'job-demo-001',
   revision: 1,
-  serverStatus: null,
-  failure: {reason: 'server_rejected', httpStatus: 403},
-  file: {sizeBytes: 112, format: 'csv'},
-  serverFileName: 'statement-20261029-1432.csv',
-  createdAt: '2026-10-29T13:32:00.000Z',
-  updatedAt: '2026-10-29T13:32:00.000Z'
-};
+  failure: {reason: 'server_rejected', httpStatus: 403}
+});
 
 const EMPTY_LOAD = {success: true, payload: {operation: null, pendingCleanups: []}};
 

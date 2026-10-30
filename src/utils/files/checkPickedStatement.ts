@@ -13,11 +13,21 @@ type PickedStatementVerdict =
   | {success: true; format: StatementFormat; sizeBytes: number}
   | {success: false; reason: STATEMENT_REJECTION; sizeBytes: number};
 
+/** The first bytes of the copy; null when the copy is gone or could not be read. */
+const readHeaderBytes = (files: StatementFileStore, operationId: string): Uint8Array | null => {
+  const headerRead = files.readCopyHeader(operationId, LIMITS.FORMAT_HEADER_BYTES);
+  if (!headerRead.success) {
+    return null;
+  }
+  return headerRead.payload;
+};
+
 /**
  * Checks the private copy of a picked statement before any network: the size the picker
  * reported, then the real size, then only the first bytes. The name and type choose the wording
  * of a refusal, never the verdict. A reported size can only refuse a file: an unknown or empty
- * report proves nothing until the copy is measured.
+ * report proves nothing until the copy is measured. A copy that is gone and one that could not be
+ * read are both refused as unreadable.
  */
 export const checkPickedStatement = (
   files: StatementFileStore,
@@ -28,13 +38,14 @@ export const checkPickedStatement = (
   if (checkStatementSize(reportedSize) === STATEMENT_REJECTION.TOO_LARGE) {
     return {success: false, reason: STATEMENT_REJECTION.TOO_LARGE, sizeBytes: reportedSize};
   }
-  const sizeBytes = files.readCopySize(operationId);
-  if (sizeBytes === null) {
+  const sizeRead = files.readCopySize(operationId);
+  if (!sizeRead.success || sizeRead.payload === null) {
     return {success: false, reason: STATEMENT_REJECTION.UNREADABLE, sizeBytes: reportedSize};
   }
+  const sizeBytes = sizeRead.payload;
   const fileCheck = checkStatementFile({
     sizeBytes,
-    readHeader: () => files.readCopyHeader(operationId, LIMITS.FORMAT_HEADER_BYTES),
+    readHeader: () => readHeaderBytes(files, operationId),
     claimsPdf: claimsToBePdf(picked.originalName, picked.mimeType)
   });
   if (!fileCheck.success) {

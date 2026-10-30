@@ -1,3 +1,4 @@
+import {MOCK_SCENARIO} from '@/src/api/importsApi/mockControlApi';
 import {TIMELINE_EVENT} from '@/src/utils/import/importTimeline';
 import {
   advance,
@@ -5,22 +6,12 @@ import {
   importState,
   launchController,
   pickCsv,
-  postRequests,
   recordStoreStates,
-  resetWorld,
-  timelineEvents
+  resetWorld
 } from './controllerHarness';
+import {UNTIL_DELETED_MS} from './controllerWaits';
 import {createFakeImportBackend, FakeImportBackend} from './fakeImportBackend';
-
-const readyImport = async () => {
-  const backend = createFakeImportBackend();
-  const launched = launchController(backend);
-  await pickCsv(launched.controller, backend);
-  const sending = launched.controller.send();
-  await advance(1500);
-  await sending;
-  return {backend, ...launched};
-};
+import {readyImport} from './importScenarios';
 
 const deleteRequests = (backend: FakeImportBackend) =>
   backend.server.requests.filter((request) => request.method === 'DELETE');
@@ -38,7 +29,7 @@ describe('import controller: deleting', () => {
     await advance(0);
     expect(importState().operation?.phase).toBe('deleting');
     expect(importState().outcome).toBeNull();
-    await advance(1500);
+    await advance(UNTIL_DELETED_MS);
     expect(await deleting).toBe('deleted');
     expect(importState().operation).toBeNull();
     expect(importState().outcome?.kind).toBe('deleted');
@@ -61,9 +52,9 @@ describe('import controller: deleting', () => {
     backend.api.deleteImport = sendDelete;
     backend.server.loseDeleteAnswers = false;
     backend.server.isOffline = false;
-    await advance(1500);
+    await advance(UNTIL_DELETED_MS);
     const retrying = controller.retry();
-    await advance(1000);
+    await advance(UNTIL_DELETED_MS);
     await retrying;
     const lastDelete = backend.server.requests
       .map((request) => request.method)
@@ -87,7 +78,7 @@ describe('import controller: deleting', () => {
     expect(importState().operation?.phase).toBe('delete_failed');
     expect(first.backend.server.stats.deleteRequests).toBe(0);
     const deleting = second.controller.retry();
-    await advance(1500);
+    await advance(UNTIL_DELETED_MS);
     await deleting;
     expect(importState().outcome?.kind).toBe('deleted');
   });
@@ -96,7 +87,7 @@ describe('import controller: deleting', () => {
     const {controller} = await readyImport();
     const recording = recordStoreStates();
     const deleting = controller.deleteImport();
-    await advance(1500);
+    await advance(UNTIL_DELETED_MS);
     await deleting;
     recording.stop();
     expect(recording.states).toContain('deleted / none');
@@ -106,13 +97,13 @@ describe('import controller: deleting', () => {
 
   it('never says deleted on a 503, and Retry with the same delete key reaches deleted', async () => {
     const {backend, controller} = await readyImport();
-    backend.setScenario('delete_failure');
+    backend.setScenario(MOCK_SCENARIO.DELETE_FAILURE);
     expect(await controller.deleteImport()).toBe('failed');
     expect(importState().operation?.phase).toBe('delete_failed');
     expect(importState().outcome).toBeNull();
-    backend.setScenario('happy');
+    backend.setScenario(MOCK_SCENARIO.HAPPY);
     const retrying = controller.retry();
-    await advance(1500);
+    await advance(UNTIL_DELETED_MS);
     await retrying;
     const keys = deleteRequests(backend).map((request) => request.headers['Idempotency-Key']);
     expect(keys).toHaveLength(2);
@@ -129,7 +120,7 @@ describe('import controller: deleting', () => {
     expect(deleteRequests(backend)).toHaveLength(0);
     backend.server.isOffline = false;
     const retrying = controller.retry();
-    await advance(1500);
+    await advance(UNTIL_DELETED_MS);
     await retrying;
     expect(deleteRequests(backend)).toHaveLength(1);
     expect(importState().outcome?.kind).toBe('deleted');
@@ -139,7 +130,7 @@ describe('import controller: deleting', () => {
     const {backend, controller} = await readyImport();
     backend.server.loseDeleteAnswers = true;
     const deleting = controller.deleteImport();
-    await advance(1500);
+    await advance(UNTIL_DELETED_MS);
     expect(await deleting).toBe('deleted');
     expect(deleteRequests(backend)).toHaveLength(1);
     expect(importState().outcome?.kind).toBe('deleted');
@@ -173,134 +164,8 @@ describe('import controller: deleting', () => {
     void controller.send();
     await advance(0);
     const cancelling = controller.deleteImport();
-    await advance(1500);
+    await advance(UNTIL_DELETED_MS);
     expect(await cancelling).toBe('deleted');
     expect(importState().operation).toBeNull();
-  });
-});
-
-describe('import controller: replacing the previous statement', () => {
-  beforeEach(resetWorld);
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  it('deletes the previous statement before sending the new one', async () => {
-    const {backend, controller} = await readyImport();
-    await pickCsv(controller, backend);
-    const sending = controller.send();
-    await advance(4000);
-    await sending;
-    expect(importState().operation).toMatchObject({phase: 'ready', jobId: 'job-demo-002'});
-    expect(backend.server.stats).toMatchObject({newJobs: 2, deleteRequests: 1});
-    expect(importState().timeline.some((entry) => entry.aboutPrevious)).toBe(true);
-  });
-
-  it('deletes a failed import that already has a job before the new statement goes out', async () => {
-    const backend = createFakeImportBackend();
-    backend.server.refusedReadStatus = 403;
-    const {controller} = launchController(backend);
-    await pickCsv(controller, backend);
-    const sending = controller.send();
-    await advance(1000);
-    await sending;
-    expect(importState().operation).toMatchObject({phase: 'failed', jobId: 'job-demo-001'});
-    backend.server.refusedReadStatus = null;
-    await pickCsv(controller, backend);
-    const replacing = controller.send();
-    await advance(4000);
-    await replacing;
-    const calls = backend.server.requests.map((request) => `${request.method} ${request.path}`);
-    expect(calls).toContain('DELETE /imports/job-demo-001');
-    expect(calls.indexOf('DELETE /imports/job-demo-001')).toBeLessThan(
-      calls.lastIndexOf('POST /imports')
-    );
-    expect(importState().operation).toMatchObject({phase: 'ready', jobId: 'job-demo-002'});
-  });
-
-  it('does not send the new statement while the old one fails to delete', async () => {
-    const {backend, controller} = await readyImport();
-    backend.setScenario('delete_failure');
-    await pickCsv(controller, backend);
-    await controller.send();
-    expect(importState().draft).toMatchObject({
-      phase: 'replacing_previous',
-      isReplacementBlocked: true
-    });
-    expect(postRequests(backend)).toHaveLength(1);
-    backend.setScenario('happy');
-    const retrying = controller.retry();
-    await advance(3000);
-    await retrying;
-    expect(importState().draft).toBeNull();
-    expect(importState().operation).toMatchObject({phase: 'ready', jobId: 'job-demo-002'});
-  });
-});
-
-describe('import controller: cancel with cleanup and late answers', () => {
-  beforeEach(resetWorld);
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  it('deletes a cancelled upload on the server once the server answers again', async () => {
-    const backend = createFakeImportBackend();
-    backend.setScenario('lost_ack');
-    const {controller} = launchController(backend);
-    await pickCsv(controller, backend);
-    void controller.send();
-    await advance(0);
-    backend.server.isOffline = true;
-    await advance(8000);
-    expect(importState().operation?.phase).toBe('server_unavailable');
-    await controller.cancelUpload();
-    expect(importState().operation).toBeNull();
-    expect(importState().pendingCleanups).toHaveLength(1);
-    expect(backend.copies.size).toBe(0);
-    backend.server.isOffline = false;
-    backend.setScenario('happy');
-    const cleaning = controller.runCleanups();
-    await advance(2000);
-    await cleaning;
-    expect(importState().pendingCleanups).toEqual([]);
-    expect(backend.server.jobs.get('job-demo-001')?.deletedAt).not.toBeNull();
-    expect(timelineEvents()).toContain(TIMELINE_EVENT.CLEANUP_DELETED);
-  });
-
-  it('forgets a cancelled upload that never reached the server after one more look', async () => {
-    const backend = createFakeImportBackend();
-    backend.server.isOffline = true;
-    const {controller} = launchController(backend);
-    await pickCsv(controller, backend);
-    void controller.send();
-    await advance(8000);
-    await controller.cancelUpload();
-    backend.server.isOffline = false;
-    const cleaning = controller.runCleanups();
-    await advance(6000);
-    await cleaning;
-    expect(importState().pendingCleanups).toEqual([]);
-    expect(backend.server.stats.newJobs).toBe(0);
-  });
-
-  it('drops the answer of an upload cancelled while it was in flight', async () => {
-    const backend = createFakeImportBackend();
-    backend.server.isOffline = true;
-    const {controller} = launchController(backend);
-    await pickCsv(controller, backend);
-    void controller.send();
-    await advance(8000);
-    backend.server.isOffline = false;
-    backend.server.holdUploads = true;
-    void controller.retry();
-    await advance(1000);
-    await advance(0);
-    await controller.cancelUpload();
-    backend.releaseUploads();
-    await advance(0);
-    expect(importState().operation).toBeNull();
-    expect(importState().outcome?.kind).toBe('upload_cancelled');
   });
 });

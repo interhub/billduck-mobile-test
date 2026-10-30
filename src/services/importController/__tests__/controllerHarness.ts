@@ -100,7 +100,8 @@ export const resetWorld = async () => {
   useImportStore.setState({...INITIAL_IMPORT_STATE});
 };
 
-export const advance = (ms: number) => jest.advanceTimersByTimeAsync(ms);
+/** Moves the fake clock on and runs everything that was due, the async steps included. */
+export const advance = (durationMs: number) => jest.advanceTimersByTimeAsync(durationMs);
 
 export const pickCsv = async (controller: ImportController, backend: FakeImportBackend) => {
   backend.queuePick({

@@ -133,7 +133,9 @@ const postOnce = async (
   if (!operation) {
     return 'settled';
   }
-  if (!context.files.hasCopy(operation.operationId)) {
+  const copyPresence = context.files.hasCopy(operation.operationId);
+  // A copy that could not be read cannot be sent either: it takes the path of a missing one.
+  if (!copyPresence.success || !copyPresence.payload) {
     await markFileMissing(context, token, operation);
     return 'settled';
   }

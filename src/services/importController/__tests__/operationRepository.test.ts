@@ -1,21 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {createOperationRepository} from '@/src/services/importController/operationRepository';
-import {ImportOperation} from '@/src/types/importOperation';
+import {
+  createOperationRepository,
+  OPERATION_STORAGE_KEY
+} from '@/src/services/importController/operationRepository';
+import {buildTestOperation} from '@/src/utils/import/__tests__/importFixtures';
 
-const OPERATION: ImportOperation = {
-  operationId: 'op-1',
-  idempotencyKey: 'key-0000-0001',
-  deleteKey: null,
-  phase: 'uploading',
-  jobId: null,
-  revision: 0,
-  serverStatus: null,
-  failure: null,
-  file: {sizeBytes: 112, format: 'csv'},
-  serverFileName: 'statement-20261029-1432.csv',
-  createdAt: '2026-10-29T13:32:00.000Z',
-  updatedAt: '2026-10-29T13:32:00.000Z'
-};
+const OPERATION = buildTestOperation();
 
 describe('operationRepository', () => {
   beforeEach(async () => {
@@ -34,7 +24,7 @@ describe('operationRepository', () => {
 
   it('stores nothing but the minimal operation: no file name, no payments', async () => {
     await createOperationRepository(AsyncStorage).save({operation: OPERATION, pendingCleanups: []});
-    const raw = (await AsyncStorage.getItem('billduck.import_operation.v1')) ?? '';
+    const raw = (await AsyncStorage.getItem(OPERATION_STORAGE_KEY)) ?? '';
     expect(raw).not.toMatch(/Выписка|merchant|items|StreamBeam/);
   });
 
@@ -46,7 +36,7 @@ describe('operationRepository', () => {
   });
 
   it('drops a damaged record instead of crashing', async () => {
-    await AsyncStorage.setItem('billduck.import_operation.v1', '{"operation":{"phase":"flying"}}');
+    await AsyncStorage.setItem(OPERATION_STORAGE_KEY, '{"operation":{"phase":"flying"}}');
     expect(await createOperationRepository(AsyncStorage).load()).toEqual({
       success: true,
       payload: {operation: null, pendingCleanups: []}

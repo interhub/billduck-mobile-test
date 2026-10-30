@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {MOCK_SCENARIO} from '@/src/api/importsApi/mockControlApi';
 import {OPERATION_STORAGE_KEY} from '@/src/services/importController/operationRepository';
 import {INITIAL_IMPORT_STATE} from '@/src/stores/importStore';
 import {ERROR_KIND} from '@/src/utils/errors/resolveErrorKind';
@@ -14,6 +15,7 @@ import {
   resetWorld,
   timelineEvents
 } from './controllerHarness';
+import {PAST_CLEANUP_RECHECK_MS, THROUGH_RECOVERY_MS, UNTIL_READY_MS} from './controllerWaits';
 import {createFakeImportBackend} from './fakeImportBackend';
 
 /** The store of a launch that holds nothing: restored, with no operation, draft or journal. */
@@ -28,7 +30,7 @@ const unansweredUpload = async () => {
   const launched = launchController(backend);
   await pickCsv(launched.controller, backend);
   const sending = launched.controller.send();
-  await advance(8000);
+  await advance(THROUGH_RECOVERY_MS);
   await sending;
   return {backend, ...launched};
 };
@@ -45,7 +47,7 @@ describe('import controller: reset all', () => {
     const {controller} = launchController(backend);
     await pickCsv(controller, backend);
     const sending = controller.send();
-    await advance(1500);
+    await advance(UNTIL_READY_MS);
     await sending;
     await pickCsv(controller, backend);
     expect(importState().operation?.phase).toBe('ready');
@@ -81,7 +83,7 @@ describe('import controller: reset all', () => {
     expect(await storedRecord()).toBeNull();
     expect(backend.copies.size).toBe(0);
     backend.releaseUploads();
-    await advance(8000);
+    await advance(THROUGH_RECOVERY_MS);
     await sending;
     expect(importState().operation).toBeNull();
     expect(importState().outcome).toBeNull();
@@ -92,13 +94,13 @@ describe('import controller: reset all', () => {
 
   it('drops the pending cleanups, so no later pass asks the server about them', async () => {
     const backend = createFakeImportBackend();
-    backend.setScenario('lost_ack');
+    backend.setScenario(MOCK_SCENARIO.LOST_ACK);
     const {controller} = launchController(backend);
     await pickCsv(controller, backend);
     void controller.send();
     await advance(0);
     backend.server.isOffline = true;
-    await advance(8000);
+    await advance(THROUGH_RECOVERY_MS);
     await controller.cancelUpload();
     await advance(0);
     expect(importState().pendingCleanups).toHaveLength(1);
@@ -106,10 +108,10 @@ describe('import controller: reset all', () => {
     expect(importState()).toEqual(EMPTY_RESTORED_STATE);
     expect(await storedRecord()).toBeNull();
     backend.server.isOffline = false;
-    backend.setScenario('happy');
+    backend.setScenario(MOCK_SCENARIO.HAPPY);
     const requestsBefore = backend.server.requests.length;
     const cleaning = controller.runCleanups();
-    await advance(6000);
+    await advance(PAST_CLEANUP_RECHECK_MS);
     await cleaning;
     expect(backend.server.requests).toHaveLength(requestsBefore);
     expect(backend.server.jobs.get('job-demo-001')?.deletedAt).toBeNull();

@@ -13,12 +13,14 @@ import {
   resetWorld,
   timelineEvents
 } from './controllerHarness';
+import {LONGER_THAN_EVERY_REPEAT_MS, UNTIL_READY_MS} from './controllerWaits';
 import {
   CSV_STATEMENT,
   createFakeImportBackend,
   PDF_STATEMENT,
   SPOOFED_PDF
 } from './fakeImportBackend';
+import {QueuedPick} from './fakeStatementFiles';
 
 const TEN_MIB = 10 * 1024 * 1024;
 
@@ -39,7 +41,7 @@ describe('import controller: sending', () => {
     await advance(0);
     expect(importState().operation?.phase).toBe('queued');
     expect(importState().payments).toBeNull();
-    await advance(1500);
+    await advance(UNTIL_READY_MS);
     await sending;
     expect(importState().operation).toMatchObject({phase: 'ready', revision: 3});
     expect(importState().payments?.items).toHaveLength(2);
@@ -82,7 +84,7 @@ describe('import controller: sending', () => {
     expect(importState().operation?.phase).toBe('not_received');
     expect(backend.server.stats.createRequests).toBe(0);
     const resending = second.controller.sendAgain();
-    await advance(1500);
+    await advance(UNTIL_READY_MS);
     await resending;
     expect(postRequests(backend).map((request) => request.headers['Idempotency-Key'])).toEqual([
       sentKey,
@@ -98,7 +100,7 @@ describe('import controller: sending', () => {
     await pickCsv(controller, backend);
     const firstPress = controller.send();
     const secondPress = controller.send();
-    await advance(1500);
+    await advance(UNTIL_READY_MS);
     await Promise.all([firstPress, secondPress]);
     expect(postRequests(backend)).toHaveLength(1);
     expect(backend.server.stats).toMatchObject({createRequests: 1, newJobs: 1, duplicateHits: 0});
@@ -110,7 +112,7 @@ describe('import controller: sending', () => {
     const {controller} = launchController(backend);
     await pickCsv(controller, backend);
     const sending = controller.send();
-    await advance(60_000);
+    await advance(LONGER_THAN_EVERY_REPEAT_MS);
     await sending;
     expect(importState().operation).toMatchObject({
       phase: 'failed',
@@ -133,7 +135,7 @@ describe('import controller: sending', () => {
     await controller.pickFile();
     expect(importState().draft?.originalName).toBe('Выписка за октябрь 🦆.pdf');
     const sending = controller.send();
-    await advance(1500);
+    await advance(UNTIL_READY_MS);
     await sending;
     expect(importState().operation?.phase).toBe('ready');
     const [upload] = postRequests(backend);
@@ -155,9 +157,7 @@ describe('import controller: checks before any network', () => {
     jest.useRealTimers();
   });
 
-  const pickAndCheck = async (
-    pick: Parameters<ReturnType<typeof createFakeImportBackend>['queuePick']>[0]
-  ) => {
+  const pickAndCheck = async (pick: QueuedPick) => {
     const backend = createFakeImportBackend();
     const {controller} = launchController(backend);
     backend.queuePick(pick);
@@ -216,7 +216,7 @@ describe('import controller: checks before any network', () => {
     const files = [
       '',
       'date,description,amount\r\n2026-09-01,StreamBeam,-19.99\r\n',
-      `﻿${CSV_STATEMENT}`
+      `\uFEFF${CSV_STATEMENT}`
     ];
     for (const content of files) {
       await resetWorld();
@@ -244,6 +244,19 @@ describe('import controller: checks before any network', () => {
       phase: 'rejected',
       rejection: STATEMENT_REJECTION.UNREADABLE
     });
+    expect(backend.copies.size).toBe(0);
+  });
+
+  it('says the file cannot be read when its copy cannot be measured, leaving no copy', async () => {
+    const backend = createFakeImportBackend();
+    backend.disk.isUnreadable = true;
+    const {controller} = launchController(backend);
+    await pickCsv(controller, backend);
+    expect(importState().draft).toMatchObject({
+      phase: 'rejected',
+      rejection: STATEMENT_REJECTION.UNREADABLE
+    });
+    expect(backend.server.requests).toEqual([]);
     expect(backend.copies.size).toBe(0);
   });
 

@@ -30,7 +30,7 @@ const deleteQuietly = (entry: File | Directory) => {
     }
   } catch (error) {
     logger.e(LOG_NAME.error_log, {
-      type: LOG_TYPE.pick_file,
+      type: LOG_TYPE.remove_copy,
       error_kind: resolveErrorKind(error),
       http_status: null
     });
@@ -64,7 +64,7 @@ const clearPickerLeftovers = () => {
     }
   } catch (error) {
     logger.e(LOG_NAME.error_log, {
-      type: LOG_TYPE.pick_file,
+      type: LOG_TYPE.remove_copy,
       error_kind: resolveErrorKind(error),
       http_status: null
     });
@@ -82,8 +82,9 @@ const ensureImportsDirectory = () => {
  * The private copies of statements in `Paths.cache/imports/`, named by operation id and never by
  * the original name. Android hands the picker result as a `content://` link whose access ends
  * with the activity, so the copy is what a resend after a restart reads. Nothing here reads a
- * whole file into memory, and nothing throws: failures come back as results or null. A failure
- * is logged by its kind only, because file errors carry paths with the original name.
+ * whole file into memory, and nothing throws: every read comes back as a result, and a failed
+ * deletion is only logged. A failure is logged by its kind only, because file errors carry paths
+ * with the original name.
  */
 export const statementFileStore: StatementFileStore = {
   pickStatement: async (operationId) => {
@@ -121,45 +122,40 @@ export const statementFileStore: StatementFileStore = {
     try {
       const file = copyOf(operationId);
       if (!file.exists) {
-        return null;
+        return {success: true, payload: null};
       }
-      return file.size;
+      return {success: true, payload: file.size};
     } catch (error) {
-      logger.e(LOG_NAME.error_log, {
-        type: LOG_TYPE.pick_file,
-        error_kind: resolveErrorKind(error),
-        http_status: null
-      });
-      return null;
+      const kind = resolveErrorKind(error);
+      logger.e(LOG_NAME.error_log, {type: LOG_TYPE.read_copy, error_kind: kind, http_status: null});
+      return {success: false, error: {kind, httpStatus: null}};
     }
   },
   readCopyHeader: (operationId, length) => {
     try {
-      const handle = copyOf(operationId).open(FileMode.ReadOnly);
+      const file = copyOf(operationId);
+      if (!file.exists) {
+        return {success: true, payload: null};
+      }
+      const handle = file.open(FileMode.ReadOnly);
       try {
-        return handle.readBytes(length);
+        return {success: true, payload: handle.readBytes(length)};
       } finally {
         handle.close();
       }
     } catch (error) {
-      logger.e(LOG_NAME.error_log, {
-        type: LOG_TYPE.pick_file,
-        error_kind: resolveErrorKind(error),
-        http_status: null
-      });
-      return null;
+      const kind = resolveErrorKind(error);
+      logger.e(LOG_NAME.error_log, {type: LOG_TYPE.read_copy, error_kind: kind, http_status: null});
+      return {success: false, error: {kind, httpStatus: null}};
     }
   },
   hasCopy: (operationId) => {
     try {
-      return copyOf(operationId).exists;
+      return {success: true, payload: copyOf(operationId).exists};
     } catch (error) {
-      logger.e(LOG_NAME.error_log, {
-        type: LOG_TYPE.pick_file,
-        error_kind: resolveErrorKind(error),
-        http_status: null
-      });
-      return false;
+      const kind = resolveErrorKind(error);
+      logger.e(LOG_NAME.error_log, {type: LOG_TYPE.read_copy, error_kind: kind, http_status: null});
+      return {success: false, error: {kind, httpStatus: null}};
     }
   },
   getCopyUri: (operationId) => copyOf(operationId).uri,
@@ -180,7 +176,7 @@ export const statementFileStore: StatementFileStore = {
       }
     } catch (error) {
       logger.e(LOG_NAME.error_log, {
-        type: LOG_TYPE.pick_file,
+        type: LOG_TYPE.remove_copy,
         error_kind: resolveErrorKind(error),
         http_status: null
       });

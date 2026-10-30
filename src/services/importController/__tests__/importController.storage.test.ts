@@ -11,6 +11,7 @@ import {
   postRequests,
   resetWorld
 } from './controllerHarness';
+import {UNTIL_DELETED_MS} from './controllerWaits';
 import {createFakeImportBackend} from './fakeImportBackend';
 import {readyImport} from './importScenarios';
 
@@ -55,7 +56,7 @@ describe('import controller: a disk that refuses a write', () => {
     expect(methods).not.toContain('DELETE');
     expect(importState().operation).toMatchObject({phase: 'ready', deleteKey: null});
     const deleting = controller.deleteImport();
-    await advance(1500);
+    await advance(UNTIL_DELETED_MS);
     expect(await deleting).toBe('deleted');
   });
 });

@@ -1,5 +1,3 @@
-import {readFileSync} from 'node:fs';
-import {join} from 'node:path';
 import {LIMITS} from '@/src/constants/LIMITS';
 import {
   checkStatementFile,
@@ -7,10 +5,8 @@ import {
   detectStatementFormat,
   STATEMENT_REJECTION
 } from '@/src/utils/files/checkStatementFile';
+import {readFixture} from './kitFixtures';
 
-const FIXTURES = join(__dirname, '../../../../mobile-engineer-candidate-kit/fixtures');
-const readFixture = (name: string): Uint8Array =>
-  new Uint8Array(readFileSync(join(FIXTURES, name)));
 const ascii = (text: string): Uint8Array => Uint8Array.from(text, (char) => char.charCodeAt(0));
 const header = (bytes: Uint8Array) => bytes.subarray(0, LIMITS.FORMAT_HEADER_BYTES);
 
