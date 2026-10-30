@@ -1,6 +1,4 @@
-import {wait} from '@/src/utils/promise/wait';
-
-type WaitFunction = (ms: number) => Promise<void>;
+import {wait, WaitFunction} from '@/src/utils/promise/wait';
 
 /**
  * Makes one attempt after each pause of the ladder until an attempt returns a result.

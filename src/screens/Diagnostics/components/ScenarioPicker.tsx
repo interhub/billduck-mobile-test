@@ -1,20 +1,13 @@
 import {CheckCircleIcon} from 'phosphor-react-native/src/icons/CheckCircle';
 import {CircleIcon} from 'phosphor-react-native/src/icons/Circle';
 import {StyleSheet, View} from 'react-native';
-import {MOCK_SCENARIO} from '@/src/api/importsApi/mockControlApi';
+import {MOCK_SCENARIO, MOCK_SCENARIOS} from '@/src/api/importsApi/mockControlApi';
 import {BORDER_WIDTH, ICON_SIZE, SPACING, TOUCH_TARGET} from '@/src/constants/UI_SIZES';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {TouchableScaleView} from '@/src/components/ui/TouchableScaleView';
 import {useThemeColors} from '@/src/hooks/styles/useThemeColors';
 import {useTranslation} from '@/src/i18n/useTranslation';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
-
-const SCENARIOS: readonly MOCK_SCENARIO[] = [
-  MOCK_SCENARIO.HAPPY,
-  MOCK_SCENARIO.LOST_ACK,
-  MOCK_SCENARIO.STALE_STATUS,
-  MOCK_SCENARIO.DELETE_FAILURE
-];
 
 const SCENARIO_TEST_ID: Record<MOCK_SCENARIO, string> = {
   [MOCK_SCENARIO.HAPPY]: 'diagnostics_scenario_happy_switch',
@@ -45,7 +38,7 @@ type ScenarioPickerProps = {
 export const ScenarioPicker = ({current, isDisabled, onSelect}: ScenarioPickerProps) => {
   const {styles} = useScenarioPickerStyles();
   const {t} = useTranslation();
-  const rows = SCENARIOS.map((scenario) => {
+  const rows = MOCK_SCENARIOS.map((scenario) => {
     const isSelected = scenario === current;
     const selectScenario = () => onSelect(scenario);
     return (

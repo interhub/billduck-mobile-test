@@ -3,21 +3,12 @@ import {StyleSheet, View} from 'react-native';
 import {ICON_SIZE, PAYMENT_DOT_SIZE, SPACING, TOUCH_TARGET} from '@/src/constants/UI_SIZES';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {TouchableScaleView} from '@/src/components/ui/TouchableScaleView';
-import {Translation} from '@/src/i18n/translations';
 import {useTranslation} from '@/src/i18n/useTranslation';
 import {RecurringItem} from '@/src/types/importApi';
+import {describeCadence} from '@/src/utils/format/describeCadence';
 import {formatCalendarDate} from '@/src/utils/format/formatDate';
 import {formatMoney} from '@/src/utils/format/formatMoney';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
-
-/** "Monthly" / "Ежемесячно" for the cadences the app knows, the server word otherwise. */
-export const describeCadence = (cadence: string, t: Translation): string => {
-  const known = t.importResult.cadence;
-  if (cadence === 'monthly' || cadence === 'weekly' || cadence === 'yearly') {
-    return known[cadence];
-  }
-  return cadence;
-};
 
 type PaymentRowProps = {
   item: RecurringItem;
@@ -32,7 +23,7 @@ export const PaymentRow = ({item, currency, dotColor, onPress, testID}: PaymentR
   const {styles, colors} = usePaymentRowStyles();
   const {t, language} = useTranslation();
   const amount = formatMoney(item.amountMinor, currency, language);
-  const cadence = describeCadence(item.cadence, t);
+  const cadence = describeCadence(item.cadence, language);
   const lastCharge = t.importResult.lastCharge(formatCalendarDate(item.lastSeen, language));
   const openDetails = () => onPress(item.id);
   return (

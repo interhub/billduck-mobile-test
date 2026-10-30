@@ -1,4 +1,5 @@
-import {LANGUAGE, Translation, TRANSLATIONS} from '@/src/i18n/translations';
+import {LANGUAGE, TRANSLATIONS} from '@/src/i18n/translations';
+import {Translation} from '@/src/i18n/translationsEn';
 import {useAppStateStore} from '@/src/stores/appStateStore';
 
 /** The strings of the current interface language: `const {t} = useTranslation();`. */

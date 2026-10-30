@@ -71,6 +71,14 @@ const isRepeatOf = (last: TimelineEntry, entry: TimelineEntry): boolean => {
   );
 };
 
+/** A status answer of this operation came older than the one shown and was skipped. */
+export const hasSkippedStaleAnswer = (timeline: TimelineEntry[], operationId: string): boolean => {
+  return timeline.some(
+    (entry) =>
+      entry.event === TIMELINE_EVENT.STATUS_STALE_SKIPPED && entry.operationId === operationId
+  );
+};
+
 /**
  * Appends a row, folding an answer identical to the previous row into it: polling the same
  * status every half second would otherwise push every useful row off the screen.

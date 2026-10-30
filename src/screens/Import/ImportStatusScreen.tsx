@@ -5,11 +5,11 @@ import {MainButton} from '@/src/components/ui/MainButton';
 import {ResponseTimeline} from '@/src/components/ui/ResponseTimeline';
 import {ScreenHeader} from '@/src/components/ui/ScreenHeader';
 import {ScreenLayout} from '@/src/components/ui/ScreenLayout';
-import {BadgePhase} from '@/src/components/ui/StatusBadge';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {SPACING} from '@/src/constants/UI_SIZES';
 import {ImportSubject, useImportSubject} from '@/src/hooks/import/useImportSubject';
-import {LANGUAGE, Translation} from '@/src/i18n/translations';
+import {LANGUAGE} from '@/src/i18n/translations';
+import {Translation} from '@/src/i18n/translationsEn';
 import {useTranslation} from '@/src/i18n/useTranslation';
 import {useAppNavigation} from '@/src/navigation/hooks/useAppNavigation';
 import {SCREEN_NAME} from '@/src/navigation/types';
@@ -17,9 +17,11 @@ import {ReadySummary} from '@/src/screens/Import/components/ReadySummary';
 import {StatusHero} from '@/src/screens/Import/components/StatusHero';
 import {describeImportStatus} from '@/src/screens/Import/logic/describeImportStatus';
 import {importController} from '@/src/services/importController/importController';
-import {StatementPayments, useImportStore} from '@/src/stores/importStore';
+import {useImportStore} from '@/src/stores/importStore';
+import {StatementPayments} from '@/src/types/importDraft';
 import {ImportFailure} from '@/src/types/importOperation';
 import {formatStatementTitle} from '@/src/utils/format/formatStatementTitle';
+import {BadgePhase} from '@/src/utils/import/importPhases';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
 
 type StatusActionHandlers = {
@@ -173,7 +175,7 @@ const describeDetail = (failure: ImportFailure | null, t: Translation): string |
   if (failure?.reason !== 'server_rejected' || failure.httpStatus === null) {
     return null;
   }
-  return t.importStatus.serverAnswer(`HTTP ${failure.httpStatus}`);
+  return t.importStatus.serverAnswer(failure.httpStatus);
 };
 
 const describeTitle = (subject: ImportSubject, language: LANGUAGE): string | null => {
@@ -200,11 +202,11 @@ export const ImportStatusScreen = () => {
   const {t, language} = useTranslation();
   const navigation = useAppNavigation();
   const subject = useImportSubject();
-  const {timeline, payments, isReconnecting, failure} = useImportStore(
+  const {timeline, payments, isPollingSilent, failure} = useImportStore(
     useShallow((state) => ({
       timeline: state.timeline,
       payments: state.payments,
-      isReconnecting: state.isReconnecting,
+      isPollingSilent: state.isPollingSilent,
       failure: state.operation?.failure ?? null
     }))
   );
@@ -266,7 +268,7 @@ export const ImportStatusScreen = () => {
     {
       phase: subject.phase,
       hasJob: subject.hasJob,
-      isReconnecting,
+      isPollingSilent,
       isReplacementBlocked: subject.isReplacementBlocked,
       failure
     },

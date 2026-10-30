@@ -6,7 +6,7 @@ import {ICON_SIZE, SPACING} from '@/src/constants/UI_SIZES';
 import {MainButton} from '@/src/components/ui/MainButton';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {useTranslation} from '@/src/i18n/useTranslation';
-import {ImportOutcome} from '@/src/stores/importStore';
+import {ImportOutcome} from '@/src/types/importDraft';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
 
 type NoticeLineProps = {

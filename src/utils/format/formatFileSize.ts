@@ -8,6 +8,11 @@ const formatOneDecimal = (value: number, decimalSeparator: string): string => {
   return value.toFixed(1).replace('.', decimalSeparator);
 };
 
+/** The size in whole kilobytes, at least 1: the `size_kb` field of a log. */
+export const toKilobytes = (sizeBytes: number): number => {
+  return Math.max(1, Math.round(sizeBytes / BYTES_PER_KILOBYTE));
+};
+
 /** "112 B", "2.4 KB", "10.0 MB" in English; "112 Б", "2,4 КБ", "10,0 МБ" in Russian. */
 export const formatFileSize = (sizeBytes: number, language: LANGUAGE): string => {
   const {bytes, kilobytes, megabytes, decimalSeparator} = TRANSLATIONS[language].format;

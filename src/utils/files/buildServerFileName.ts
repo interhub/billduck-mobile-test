@@ -1,8 +1,5 @@
 import {StatementFormat} from '@/src/types/importOperation';
-
-const DATE_PART_DIGITS = 2;
-
-const pad = (value: number): string => String(value).padStart(DATE_PART_DIGITS, '0');
+import {padTwoDigits} from '@/src/utils/format/formatDate';
 
 /**
  * The name sent in X-File-Name: `statement-20261029-1432.pdf`, built from the local date and
@@ -10,7 +7,7 @@ const pad = (value: number): string => String(value).padStart(DATE_PART_DIGITS, 
  * phone and an Android HTTP header never meets a Cyrillic letter or an emoji.
  */
 export const buildServerFileName = (createdAt: Date, format: StatementFormat): string => {
-  const datePart = `${createdAt.getFullYear()}${pad(createdAt.getMonth() + 1)}${pad(createdAt.getDate())}`;
-  const timePart = `${pad(createdAt.getHours())}${pad(createdAt.getMinutes())}`;
+  const datePart = `${createdAt.getFullYear()}${padTwoDigits(createdAt.getMonth() + 1)}${padTwoDigits(createdAt.getDate())}`;
+  const timePart = `${padTwoDigits(createdAt.getHours())}${padTwoDigits(createdAt.getMinutes())}`;
   return `statement-${datePart}-${timePart}.${format}`;
 };

@@ -23,14 +23,11 @@ import {
   ImportController
 } from '@/src/services/importController/createImportController';
 import {
-  AppActivity,
-  StatementFileStore
-} from '@/src/services/importController/importControllerTypes';
-import {
   createOperationRepository,
   KeyValueStorage
 } from '@/src/services/importController/operationRepository';
 import {INITIAL_IMPORT_STATE, ImportStoreState, useImportStore} from '@/src/stores/importStore';
+import {AppActivity, StatementFileStore} from '@/src/types/statementFiles';
 import {wait} from '@/src/utils/promise/wait';
 
 export const FIXTURES = path.resolve(__dirname, '../../../mobile-engineer-candidate-kit/fixtures');
@@ -184,7 +181,7 @@ export const createPhone = () => {
   const storage = createMemoryStorage();
   const fileStore = createNodeFileStore(directory);
   const counter = {value: 0};
-  const createKey = () => {
+  const createUuid = () => {
     counter.value += 1;
     return `itest-${Date.now()}-${counter.value}`;
   };
@@ -199,7 +196,7 @@ export const createPhone = () => {
         isActive: () => activity.current.isActive(),
         whenActive: () => activity.current.whenActive()
       },
-      createKey,
+      createUuid,
       now: () => new Date(),
       wait
     });

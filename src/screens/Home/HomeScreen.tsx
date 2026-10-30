@@ -14,8 +14,10 @@ import {CurrentImportCard} from '@/src/screens/Home/components/CurrentImportCard
 import {HomeHeader} from '@/src/screens/Home/components/HomeHeader';
 import {HomeNotices} from '@/src/screens/Home/components/HomeNotices';
 import {importController} from '@/src/services/importController/importController';
-import {StatementPayments, useImportStore} from '@/src/stores/importStore';
+import {useImportStore} from '@/src/stores/importStore';
+import {StatementPayments} from '@/src/types/importDraft';
 import {canAddStatement} from '@/src/utils/import/canAddStatement';
+import {isReplacingPrevious} from '@/src/utils/import/importPhases';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
 
 type HomeContentProps = {
@@ -70,7 +72,7 @@ export const HomeScreen = () => {
   );
   const [isPicking, setIsPicking] = useState(false);
   const isAddingAllowed = canAddStatement(operation, draft);
-  const isEmpty = !operation && draft?.phase !== 'replacing_previous';
+  const isEmpty = !operation && !isReplacingPrevious(draft);
   const addStatement = async () => {
     setIsPicking(true);
     try {

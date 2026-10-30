@@ -5,7 +5,7 @@ import {LOG_NAME} from '@/src/utils/logger/LOG_NAME';
  * name, an operation description or a payee name cannot reach the console by accident.
  * Extend the list only after a privacy check of the new field.
  */
-export const ALLOWED_LOG_KEYS = [
+const ALLOWED_LOG_KEYS = [
   'type',
   'job_id',
   'phase',
@@ -21,7 +21,7 @@ type LogKey = (typeof ALLOWED_LOG_KEYS)[number];
 type LogValue = string | number | boolean | null;
 type LogLevel = 'LOG' | 'WARN' | 'ERROR';
 
-export type LogParams = Partial<Record<LogKey, LogValue>>;
+type LogParams = Partial<Record<LogKey, LogValue>>;
 
 type SplitLogParams = {
   safeParams: Record<string, LogValue>;
@@ -42,7 +42,7 @@ const resolveLogValue = (value: LogValue | undefined): LogValue | undefined => {
 };
 
 /** Keeps only allowed keys with flat primitive values; the rest is reported as dropped. */
-export const splitLogParams = (params: LogParams | undefined): SplitLogParams => {
+const splitLogParams = (params: LogParams | undefined): SplitLogParams => {
   const safeParams: Record<string, LogValue> = {};
   const droppedKeys: string[] = [];
   if (!params) {

@@ -11,7 +11,7 @@ export enum STATEMENT_REJECTION {
   UNREADABLE = 'unreadable'
 }
 
-export type StatementCheckResult =
+type StatementCheckResult =
   {success: true; format: StatementFormat} | {success: false; reason: STATEMENT_REJECTION};
 
 type StatementCandidate = {

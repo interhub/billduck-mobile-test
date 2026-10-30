@@ -6,7 +6,7 @@ import {MainButton} from '@/src/components/ui/MainButton';
 import {PaymentRow} from '@/src/components/ui/PaymentRow';
 import {ScreenHeader} from '@/src/components/ui/ScreenHeader';
 import {ScreenLayout} from '@/src/components/ui/ScreenLayout';
-import {StatusBadge, toBadgePhase} from '@/src/components/ui/StatusBadge';
+import {StatusBadge} from '@/src/components/ui/StatusBadge';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {PAYMENT_DOT_COLORS} from '@/src/constants/UI_COLORS';
 import {BORDER_WIDTH, SPACING} from '@/src/constants/UI_SIZES';
@@ -20,7 +20,8 @@ import {useImportStore} from '@/src/stores/importStore';
 import {ImportOperation} from '@/src/types/importOperation';
 import {formatLocalTime} from '@/src/utils/format/formatDate';
 import {formatMonthlyTotal} from '@/src/utils/format/formatMoney';
-import {TIMELINE_EVENT} from '@/src/utils/import/importTimeline';
+import {toBadgePhase} from '@/src/utils/import/importPhases';
+import {hasSkippedStaleAnswer} from '@/src/utils/import/importTimeline';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
 
 type OperationBadgeProps = {
@@ -126,11 +127,6 @@ export const ImportResultScreen = () => {
     ]);
   };
   const header = <ScreenHeader onBack={navigation.goBack} testID="import_result_back_button" />;
-  const isStaleSkipped = timeline.some(
-    (entry) =>
-      entry.event === TIMELINE_EVENT.STATUS_STALE_SKIPPED &&
-      entry.operationId === operation?.operationId
-  );
   if (!payments || !operation) {
     return (
       <ScreenLayout
@@ -148,6 +144,7 @@ export const ImportResultScreen = () => {
       </ScreenLayout>
     );
   }
+  const isStaleSkipped = hasSkippedStaleAnswer(timeline, operation.operationId);
   const rows = payments.items.map((paymentItem, index) => (
     <PaymentRow
       key={paymentItem.id}

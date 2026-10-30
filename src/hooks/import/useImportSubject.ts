@@ -1,7 +1,8 @@
 import {useShallow} from 'zustand/react/shallow';
-import {BadgePhase, toBadgePhase} from '@/src/components/ui/StatusBadge';
-import {ImportDraft, ImportOutcome, useImportStore} from '@/src/stores/importStore';
+import {useImportStore} from '@/src/stores/importStore';
+import {ImportDraft, ImportOutcome} from '@/src/types/importDraft';
 import {ImportOperation, StatementFile} from '@/src/types/importOperation';
+import {BadgePhase, isReplacingPrevious, toBadgePhase} from '@/src/utils/import/importPhases';
 
 /** What the import screens talk about: the statement in the works, or how the last one ended. */
 export type ImportSubject = {
@@ -37,7 +38,7 @@ const resolveImportSubject = (
   operation: ImportOperation | null,
   outcome: ImportOutcome | null
 ): ImportSubject => {
-  if (draft?.phase === 'replacing_previous' && draft.format) {
+  if (isReplacingPrevious(draft) && draft.format) {
     return {
       phase: 'replacing_previous',
       titleSource: {

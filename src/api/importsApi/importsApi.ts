@@ -4,8 +4,10 @@ import {IMPORT_STATUS} from '@/src/constants/IMPORT_STATUS';
 import {LIMITS} from '@/src/constants/LIMITS';
 import {ApiResult, ImportJob, RecurringItem} from '@/src/types/importApi';
 import {ERROR_KIND, resolveHttpStatusErrorKind} from '@/src/utils/errors/resolveErrorKind';
+import {CALENDAR_DATE_PATTERN} from '@/src/utils/format/formatDate';
+import {isRecord, parseJson} from '@/src/utils/json/parseJson';
 
-export type FileUploadRequest = {
+type FileUploadRequest = {
   url: string;
   fileUri: string;
   headers: Record<string, string>;
@@ -19,7 +21,7 @@ export type FileUploadRequest = {
  */
 export type FileUploader = (request: FileUploadRequest) => Promise<HttpAnswer>;
 
-export type CreateImportRequest = {
+type CreateImportRequest = {
   fileUri: string;
   idempotencyKey: string;
   serverFileName: string;
@@ -28,11 +30,6 @@ export type CreateImportRequest = {
 };
 
 const JOB_STATUSES: readonly string[] = Object.values(IMPORT_STATUS);
-const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-};
 
 const isRecurringItem = (value: unknown): value is RecurringItem => {
   if (!isRecord(value)) {
@@ -44,7 +41,7 @@ const isRecurringItem = (value: unknown): value is RecurringItem => {
     Number.isInteger(value.amountMinor) &&
     typeof value.cadence === 'string' &&
     typeof value.lastSeen === 'string' &&
-    CALENDAR_DATE.test(value.lastSeen)
+    CALENDAR_DATE_PATTERN.test(value.lastSeen)
   );
 };
 
@@ -54,14 +51,6 @@ const isJobStatus = (value: unknown): value is IMPORT_STATUS => {
 
 const isRevision = (value: unknown): value is number => {
   return typeof value === 'number' && Number.isInteger(value) && value >= 1;
-};
-
-const parseJson = (body: string): unknown => {
-  try {
-    return JSON.parse(body);
-  } catch {
-    return null;
-  }
 };
 
 const readItems = (value: Record<string, unknown>): RecurringItem[] | null => {

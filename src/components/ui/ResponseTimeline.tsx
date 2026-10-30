@@ -2,7 +2,7 @@ import {StyleSheet, View} from 'react-native';
 import {ThemeColors} from '@/src/constants/UI_COLORS';
 import {BORDER_WIDTH, SPACING, STATUS_DOT_SIZE} from '@/src/constants/UI_SIZES';
 import {TextLine} from '@/src/components/ui/TextLine';
-import {Translation} from '@/src/i18n/translations';
+import {Translation} from '@/src/i18n/translationsEn';
 import {useTranslation} from '@/src/i18n/useTranslation';
 import {formatLocalTime} from '@/src/utils/format/formatDate';
 import {TIMELINE_EVENT, TimelineEntry} from '@/src/utils/import/importTimeline';
@@ -61,10 +61,10 @@ const describeDetails = (entry: TimelineEntry, t: Translation): string => {
     parts.push(t.phase[entry.status]);
   }
   if (entry.revision !== null) {
-    parts.push(`r${entry.revision}`);
+    parts.push(t.timeline.revision(entry.revision));
   }
   if (entry.httpStatus !== null) {
-    parts.push(`HTTP ${entry.httpStatus}`);
+    parts.push(t.timeline.httpStatus(entry.httpStatus));
   }
   if (entry.attempt !== null) {
     parts.push(t.timeline.attempt(entry.attempt));

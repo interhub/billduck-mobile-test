@@ -6,3 +6,9 @@ export enum IMPORT_STATUS {
   DELETING = 'deleting',
   DELETED = 'deleted'
 }
+
+/** The statuses of a job whose deletion the server has accepted. */
+export const DELETION_STATUSES: readonly IMPORT_STATUS[] = [
+  IMPORT_STATUS.DELETING,
+  IMPORT_STATUS.DELETED
+];

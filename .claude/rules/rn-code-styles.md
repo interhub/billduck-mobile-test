@@ -65,7 +65,7 @@ Before writing or refactoring any code, check it against this list. Violating th
 ## Architecture
 - State: Zustand stores in `src/stores/` (`importStore`, `appStateStore`), see `custom-hooks.md`.
 - Navigation: React Navigation 7, one native stack, see `navigation.md`.
-- UI copy: every user-facing string lives in `src/i18n/translations.ts`, English and Russian with the same keys, and components read it only by key through `useTranslation()` (`const {t} = useTranslation();`, then `t.importStatus.sendAgain`); never inline user-facing text.
+- UI copy: every user-facing string lives in `src/i18n/translationsEn.ts` and `src/i18n/translationsRu.ts` with the same keys, and components read it only by key through `useTranslation()` (`const {t} = useTranslation();`, then `t.importStatus.sendAgain`); never inline user-facing text.
 - Language: Russian when the first system language is Russian (`expo-localization`), otherwise English; the name `BillDuck` is the same in both. The language is read again when the app returns to the foreground (`custom-hooks.md`).
 - Animations: the built-in `Animated` API with `useNativeDriver: true`, and the end state without animation under Reduce Motion (`styling-and-theme.md`).
 - Import flow: `network-and-import-policy.md`. File placement: `project-structure-and-reuse.md`.

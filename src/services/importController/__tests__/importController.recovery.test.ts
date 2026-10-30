@@ -148,7 +148,7 @@ describe('import controller: polling', () => {
     const {backend, controller} = await sendAndWait();
     backend.server.isOffline = true;
     await advance(1600);
-    expect(importState().isReconnecting).toBe(true);
+    expect(importState().isPollingSilent).toBe(true);
     expect(importState().operation?.phase).toBe('queued');
     await advance(31_000);
     expect(importState().operation?.phase).toBe('server_unavailable');
@@ -157,7 +157,7 @@ describe('import controller: polling', () => {
     await advance(1500);
     await retrying;
     expect(importState().operation?.phase).toBe('ready');
-    expect(importState().isReconnecting).toBe(false);
+    expect(importState().isPollingSilent).toBe(false);
   });
 
   it('stops polling in the background and reads again on return', async () => {

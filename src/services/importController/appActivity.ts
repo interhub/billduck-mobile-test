@@ -1,5 +1,5 @@
-import {AppActivity} from '@/src/services/importController/importControllerTypes';
 import {useAppStateStore} from '@/src/stores/appStateStore';
+import {AppActivity} from '@/src/types/statementFiles';
 
 /** Foreground state for the controller, read from the one AppState listener of the app. */
 export const appActivity: AppActivity = {

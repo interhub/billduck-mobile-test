@@ -6,7 +6,7 @@ export type HttpAnswer = {
   body: string;
 };
 
-export type HttpOutcome = {success: true; answer: HttpAnswer} | {success: false; kind: ERROR_KIND};
+type HttpOutcome = {success: true; answer: HttpAnswer} | {success: false; kind: ERROR_KIND};
 
 /**
  * Runs one request under our own time limit. A request stopped by that limit is a TIMEOUT;

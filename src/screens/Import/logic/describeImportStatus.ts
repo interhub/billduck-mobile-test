@@ -1,7 +1,7 @@
-import {BadgePhase} from '@/src/components/ui/StatusBadge';
 import {IllustrationName} from '@/src/components/ui/Illustration';
-import {Translation} from '@/src/i18n/translations';
+import {Translation} from '@/src/i18n/translationsEn';
 import {ImportFailure} from '@/src/types/importOperation';
+import {BadgePhase, POLLING_PHASES} from '@/src/utils/import/importPhases';
 
 /** What the status screen needs to say about the current phase. */
 export type StatusDescription = {
@@ -14,7 +14,7 @@ type StatusInput = {
   phase: BadgePhase;
   hasJob: boolean;
   /** Two status reads in a row got no answer while the job was being polled. */
-  isReconnecting: boolean;
+  isPollingSilent: boolean;
   isReplacementBlocked: boolean;
   failure: ImportFailure | null;
 };
@@ -34,8 +34,6 @@ const ILLUSTRATION_BY_PHASE: Record<BadgePhase, IllustrationName> = {
   deleted: 'deleted',
   gone_on_server: 'unknown'
 };
-
-const POLLED_PHASES: readonly BadgePhase[] = ['queued', 'processing', 'deleting'];
 
 const explain = (
   {phase, hasJob, isReplacementBlocked, failure}: StatusInput,
@@ -91,7 +89,7 @@ const explain = (
  * while its stored phase stays what the server last said.
  */
 export const describeImportStatus = (input: StatusInput, t: Translation): StatusDescription => {
-  if (input.isReconnecting && POLLED_PHASES.includes(input.phase)) {
+  if (input.isPollingSilent && POLLING_PHASES.includes(input.phase)) {
     return {
       badgePhase: 'reconnecting',
       explanation: t.importStatus.explanation.reconnectingJob,

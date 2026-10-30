@@ -1,7 +1,7 @@
 import {getDocumentAsync} from 'expo-document-picker';
 import {Directory, File, FileMode, Paths} from 'expo-file-system';
 import {Platform} from 'react-native';
-import {StatementFileStore} from '@/src/services/importController/importControllerTypes';
+import {StatementFileStore} from '@/src/types/statementFiles';
 import {resolveErrorKind} from '@/src/utils/errors/resolveErrorKind';
 import {logger} from '@/src/utils/logger/logger';
 import {LOG_NAME, LOG_TYPE} from '@/src/utils/logger/LOG_NAME';

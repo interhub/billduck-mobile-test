@@ -1,6 +1,7 @@
 import {IMPORT_STATUS} from '@/src/constants/IMPORT_STATUS';
 import {
   appendTimelineEntry,
+  hasSkippedStaleAnswer,
   TIMELINE_EVENT,
   TimelineEntry
 } from '@/src/utils/import/importTimeline';
@@ -38,5 +39,14 @@ describe('appendTimelineEntry', () => {
       []
     );
     expect(entries.map((entry) => entry.revision)).toEqual([2, 3, 4]);
+  });
+});
+
+describe('hasSkippedStaleAnswer', () => {
+  it('finds a skipped stale answer of the same operation only', () => {
+    const skipped = add([], 1, TIMELINE_EVENT.STATUS_STALE_SKIPPED, 2);
+    expect(hasSkippedStaleAnswer(skipped, 'op-1')).toBe(true);
+    expect(hasSkippedStaleAnswer(skipped, 'op-2')).toBe(false);
+    expect(hasSkippedStaleAnswer(add([], 1, TIMELINE_EVENT.STATUS_APPLIED, 3), 'op-1')).toBe(false);
   });
 });

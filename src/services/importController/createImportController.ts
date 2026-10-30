@@ -1,20 +1,15 @@
 import {HTTP_STATUS} from '@/src/constants/HTTP_STATUS';
-import {IMPORT_STATUS} from '@/src/constants/IMPORT_STATUS';
+import {DELETION_STATUSES, IMPORT_STATUS} from '@/src/constants/IMPORT_STATUS';
 import {LIMITS} from '@/src/constants/LIMITS';
-import {
-  ImportControllerDeps,
-  PickedStatement
-} from '@/src/services/importController/importControllerTypes';
-import {
-  ImportDraft,
-  ImportOutcome,
-  ImportOutcomeKind,
-  INITIAL_IMPORT_STATE
-} from '@/src/stores/importStore';
+import {ImportControllerDeps} from '@/src/services/importController/importControllerTypes';
+import {INITIAL_IMPORT_STATE} from '@/src/stores/importStore';
 import {ApiError, ApiResult, ImportJob} from '@/src/types/importApi';
-import {ImportOperation, ImportPhase, PendingCleanup} from '@/src/types/importOperation';
+import {ImportDraft, ImportOutcome, ImportOutcomeKind} from '@/src/types/importDraft';
+import {ImportOperation, PendingCleanup} from '@/src/types/importOperation';
+import {PickedStatement} from '@/src/types/statementFiles';
 import {ERROR_KIND, resolveErrorKind} from '@/src/utils/errors/resolveErrorKind';
 import {buildServerFileName} from '@/src/utils/files/buildServerFileName';
+import {toKilobytes} from '@/src/utils/format/formatFileSize';
 import {canAddStatement} from '@/src/utils/import/canAddStatement';
 import {
   checkStatementFile,
@@ -25,11 +20,11 @@ import {
 import {
   canDeleteOnServer,
   hasServerJob,
-  ImportEvent,
-  importReducer,
-  ImportTransition,
-  isAwaitingUploadOutcome
-} from '@/src/utils/import/importReducer';
+  isAwaitingUploadOutcome,
+  isPolling,
+  isReplacingPrevious
+} from '@/src/utils/import/importPhases';
+import {ImportEvent, importReducer, ImportTransition} from '@/src/utils/import/importReducer';
 import {
   appendTimelineEntry,
   TIMELINE_EVENT,
@@ -61,11 +56,6 @@ type Silence = {
   since: number | null;
 };
 
-const POLLING_PHASES: readonly ImportPhase[] = ['queued', 'processing', 'deleting'];
-const DELETION_STATUSES: readonly IMPORT_STATUS[] = [IMPORT_STATUS.DELETING, IMPORT_STATUS.DELETED];
-
-const BYTES_PER_KILOBYTE = 1024;
-
 /**
  * A refusal the server would repeat for the same key and bytes (a 4xx other than a timeout or a
  * rate limit, as the classifier tells), so the upload is not tried again.
@@ -80,13 +70,6 @@ const lookupStatus = (found: ImportJob | null): number => {
     return HTTP_STATUS.OK;
   }
   return HTTP_STATUS.NOT_FOUND;
-};
-
-const toSizeKb = (sizeBytes: number): number =>
-  Math.max(1, Math.round(sizeBytes / BYTES_PER_KILOBYTE));
-
-const isPolling = (operation: ImportOperation | null): boolean => {
-  return operation !== null && operation.jobId !== null && POLLING_PHASES.includes(operation.phase);
 };
 
 /** The previous statement deleted to make room for a new one is not announced as "Deleted". */
@@ -130,7 +113,7 @@ export const createImportController = ({
   files,
   store,
   activity,
-  createKey,
+  createUuid,
   now,
   wait
 }: ImportControllerDeps) => {
@@ -178,7 +161,7 @@ export const createImportController = ({
     record({
       ...input,
       operationId: token.operationId,
-      aboutPrevious: state().draft?.phase === 'replacing_previous'
+      aboutPrevious: isReplacingPrevious(state().draft)
     });
   };
 
@@ -255,7 +238,7 @@ export const createImportController = ({
         operation: null,
         pendingCleanups,
         payments: null,
-        isReconnecting: false,
+        isPollingSilent: false,
         outcome: buildOutcome(operation, outcomeKind)
       });
     });
@@ -275,7 +258,7 @@ export const createImportController = ({
       });
       return;
     }
-    store.setState({lastAnswerAt: nowIso(), isReconnecting: false});
+    store.setState({lastAnswerAt: nowIso(), isPollingSilent: false});
     if (transition.verdict === JOB_ANSWER_VERDICT.STALE) {
       recordFor(token, {event: TIMELINE_EVENT.STATUS_STALE_SKIPPED, ...answer});
       store.setState({staleSkippedCount: state().staleSkippedCount + 1});
@@ -311,7 +294,7 @@ export const createImportController = ({
       job_id: operation.jobId,
       phase: operation.phase
     });
-    const isReplacing = state().draft?.phase === 'replacing_previous';
+    const isReplacing = isReplacingPrevious(state().draft);
     await closeOperation(operation, resolveDeletionOutcome(isReplacing));
   };
 
@@ -406,11 +389,11 @@ export const createImportController = ({
     });
     if (silence.failures === LIMITS.POLL_FAILURES_BEFORE_RECONNECTING) {
       recordFor(token, {event: TIMELINE_EVENT.RECONNECTING});
-      store.setState({isReconnecting: true});
+      store.setState({isPollingSilent: true});
     }
     if (now().getTime() - silence.since >= LIMITS.SERVER_SILENCE_LIMIT_MS) {
       recordFor(token, {event: TIMELINE_EVENT.SERVER_UNAVAILABLE});
-      store.setState({isReconnecting: false});
+      store.setState({isPollingSilent: false});
       await dispatch(token, {type: 'connection_lost'});
       return POLL_STEP.STOP;
     }
@@ -511,7 +494,7 @@ export const createImportController = ({
     logger.d(LOG_NAME.debug_log, {
       type: LOG_TYPE.create_import,
       format: operation.file.format,
-      size_kb: toSizeKb(operation.file.sizeBytes),
+      size_kb: toKilobytes(operation.file.sizeBytes),
       attempt
     });
     const result = await api.createImport({
@@ -613,8 +596,8 @@ export const createImportController = ({
     return true;
   };
 
-  const waitInForeground = async (ms: number) => {
-    await wait(ms);
+  const waitInForeground = async (durationMs: number) => {
+    await wait(durationMs);
     await activity.whenActive();
   };
 
@@ -678,7 +661,7 @@ export const createImportController = ({
     }
     runtime.deletingKey = key;
     try {
-      const requested = await dispatch(token, {type: 'delete_requested', deleteKey: createKey()});
+      const requested = await dispatch(token, {type: 'delete_requested', deleteKey: createUuid()});
       const operation = requested?.operation;
       if (!requested?.accepted || !operation?.jobId || !operation.deleteKey) {
         return;
@@ -797,7 +780,7 @@ export const createImportController = ({
         draft: null,
         payments: null,
         outcome: null,
-        isReconnecting: false,
+        isPollingSilent: false,
         lastAnswerAt: null
       });
     });
@@ -840,7 +823,7 @@ export const createImportController = ({
   const rejectDraft = (operationId: string, reason: STATEMENT_REJECTION, sizeBytes: number) => {
     files.removeCopy(operationId);
     setDraft({phase: 'rejected', rejection: reason, sizeBytes});
-    logger.w(LOG_NAME.warning_log, {type: LOG_TYPE.pick_file, size_kb: toSizeKb(sizeBytes)});
+    logger.w(LOG_NAME.warning_log, {type: LOG_TYPE.pick_file, size_kb: toKilobytes(sizeBytes)});
   };
 
   /** Size first, then only the first bytes; the name and type choose a message, never the verdict. */
@@ -875,13 +858,13 @@ export const createImportController = ({
       phase: 'confirming',
       sizeBytes,
       format: result.format,
-      idempotencyKey: createKey(),
+      idempotencyKey: createUuid(),
       serverFileName: buildServerFileName(new Date(createdAt), result.format)
     });
     logger.d(LOG_NAME.debug_log, {
       type: LOG_TYPE.pick_file,
       format: result.format,
-      size_kb: toSizeKb(sizeBytes)
+      size_kb: toKilobytes(sizeBytes)
     });
   };
 
@@ -895,7 +878,7 @@ export const createImportController = ({
     }
     runtime.isPicking = true;
     try {
-      const operationId = createKey();
+      const operationId = createUuid();
       const picked = await files.pickStatement(operationId);
       const baseDraft: ImportDraft = {
         operationId,
@@ -1203,7 +1186,7 @@ export const createImportController = ({
     if (job.status === IMPORT_STATUS.DELETED) {
       return true;
     }
-    const deleteKey = cleanup.deleteKey ?? createKey();
+    const deleteKey = cleanup.deleteKey ?? createUuid();
     if (!cleanup.deleteKey) {
       const stored = {...cleanup, jobId: job.jobId, deleteKey};
       await updateCleanups((cleanups) => cleanups.map((entry) => replaceByKey(entry, stored)));

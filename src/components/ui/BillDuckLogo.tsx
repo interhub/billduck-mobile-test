@@ -5,7 +5,7 @@ import {LOGO, SPACING} from '@/src/constants/UI_SIZES';
 import {useTranslation} from '@/src/i18n/useTranslation';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
 
-/** The mark is drawn on a 48 x 48 grid and scaled to the requested size. */
+/** The mark is drawn on a 48 x 48 grid and scaled to `LOGO.markSize`. */
 const VIEW_BOX = '0 0 48 48';
 const LINE_WIDTH = 2;
 const PRINT_LINE_WIDTH = 1.2;
@@ -18,20 +18,16 @@ const DUCK_EYE = {cx: 29.5, cy: 14, r: 1.6};
 const RECEIPT_BEAK = 'M34 14.5H42L44 15.9L42 17.3L44 18.7L42 20.1H34Z';
 const RECEIPT_PRINT = 'M36.5 17.3H40';
 
-type BillDuckMarkProps = {
-  size?: number;
-};
-
 /**
  * The duck in profile: a yellow body, graphite lines and a torn receipt for a beak. The lines
  * stay graphite in both themes, so the mark looks the same everywhere. Decorative.
  */
-export const BillDuckMark = ({size = LOGO.markSize}: BillDuckMarkProps) => {
+const BillDuckMark = () => {
   const {colors} = useBillDuckLogoStyles();
   const line = colors.textOnAccent;
   return (
     <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-      <Svg width={size} height={size} viewBox={VIEW_BOX}>
+      <Svg width={LOGO.markSize} height={LOGO.markSize} viewBox={VIEW_BOX}>
         <Path
           d={DUCK_BODY}
           fill={colors.accent}

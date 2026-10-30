@@ -19,7 +19,7 @@ import {useImportStore} from '@/src/stores/importStore';
 import {ImportOperation} from '@/src/types/importOperation';
 import {formatFileSize} from '@/src/utils/format/formatFileSize';
 import {formatStatementFormat, formatStatementTitle} from '@/src/utils/format/formatStatementTitle';
-import {hasServerJob} from '@/src/utils/import/importReducer';
+import {hasServerJob} from '@/src/utils/import/importPhases';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
 
 type ReplaceNoteProps = {

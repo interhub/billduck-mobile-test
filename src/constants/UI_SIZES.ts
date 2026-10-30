@@ -12,8 +12,7 @@ export const SPACING = {
 
 export const RADIUS = {
   button: 10,
-  card: 16,
-  sheet: 24
+  card: 16
 } as const;
 
 /** The smallest tappable side: 44 pt on iOS, 48 dp on Android. */
@@ -46,6 +45,5 @@ export const ILLUSTRATION = {
 } as const;
 
 export const LOGO = {
-  markSize: 40,
-  smallMarkSize: 24
+  markSize: 40
 } as const;

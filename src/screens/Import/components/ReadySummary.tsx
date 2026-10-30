@@ -1,7 +1,7 @@
 import {Card} from '@/src/components/ui/Card';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {useTranslation} from '@/src/i18n/useTranslation';
-import {StatementPayments} from '@/src/stores/importStore';
+import {StatementPayments} from '@/src/types/importDraft';
 import {formatMonthlyTotal} from '@/src/utils/format/formatMoney';
 
 type ReadySummaryProps = {

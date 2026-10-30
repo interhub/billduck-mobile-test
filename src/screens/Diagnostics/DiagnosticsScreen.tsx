@@ -1,6 +1,6 @@
 import {Alert, StyleSheet, View} from 'react-native';
 import {useShallow} from 'zustand/react/shallow';
-import {MockCounters, MockState} from '@/src/api/importsApi/mockControlApi';
+import {MOCK_COUNTER_KEYS, MockCounters, MockState} from '@/src/api/importsApi/mockControlApi';
 import {Card} from '@/src/components/ui/Card';
 import {InfoRow} from '@/src/components/ui/InfoRow';
 import {MainButton} from '@/src/components/ui/MainButton';
@@ -10,7 +10,7 @@ import {ScreenLayout} from '@/src/components/ui/ScreenLayout';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {ENV} from '@/src/config/env';
 import {SPACING} from '@/src/constants/UI_SIZES';
-import {Translation} from '@/src/i18n/translations';
+import {Translation} from '@/src/i18n/translationsEn';
 import {useTranslation} from '@/src/i18n/useTranslation';
 import {useAppNavigation} from '@/src/navigation/hooks/useAppNavigation';
 import {ScenarioPicker} from '@/src/screens/Diagnostics/components/ScenarioPicker';
@@ -19,14 +19,6 @@ import {useImportStore} from '@/src/stores/importStore';
 import {ImportOperation} from '@/src/types/importOperation';
 import {formatExactBytes} from '@/src/utils/format/formatFileSize';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
-
-const COUNTER_KEYS: readonly (keyof MockCounters)[] = [
-  'createRequests',
-  'newJobs',
-  'duplicateHits',
-  'acceptedBytes',
-  'deleteRequests'
-];
 
 const COUNTER_TEST_ID: Record<keyof MockCounters, string> = {
   createRequests: 'diagnostics_create_requests_text',
@@ -144,7 +136,7 @@ export const DiagnosticsScreen = () => {
   };
   const header = <ScreenHeader onBack={navigation.goBack} testID="diagnostics_back_button" />;
   const isServerDown = health === 'down';
-  const counters = COUNTER_KEYS.map((counterKey) => {
+  const counters = MOCK_COUNTER_KEYS.map((counterKey) => {
     const counterValue = String(mockState?.stats[counterKey] ?? t.diagnostics.noValue);
     return (
       <InfoRow

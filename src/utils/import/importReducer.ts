@@ -1,6 +1,13 @@
-import {IMPORT_STATUS} from '@/src/constants/IMPORT_STATUS';
+import {DELETION_STATUSES, IMPORT_STATUS} from '@/src/constants/IMPORT_STATUS';
 import {ImportJob} from '@/src/types/importApi';
 import {ImportOperation, ImportPhase} from '@/src/types/importOperation';
+import {
+  canDeleteOnServer,
+  DELETION_PHASES,
+  hasServerJob,
+  isAwaitingUploadOutcome,
+  isUploadInFlight
+} from '@/src/utils/import/importPhases';
 import {JOB_ANSWER_VERDICT, judgeJobAnswer} from '@/src/utils/import/revisionGuard';
 
 export type ImportEvent =
@@ -46,47 +53,7 @@ const STATUS_PHASE: Record<IMPORT_STATUS, ImportPhase> = {
   [IMPORT_STATUS.DELETED]: 'deleted'
 };
 
-const UPLOAD_OUTCOME_PHASES: readonly ImportPhase[] = [
-  'uploading',
-  'reconnecting',
-  'server_unavailable',
-  'not_received'
-];
-
-const UPLOAD_IN_FLIGHT_PHASES: readonly ImportPhase[] = ['uploading', 'reconnecting'];
-
-const SERVER_JOB_PHASES: readonly ImportPhase[] = [
-  'queued',
-  'processing',
-  'ready',
-  'deleting',
-  'delete_failed',
-  'server_unavailable'
-];
-
-const DELETION_PHASES: readonly ImportPhase[] = ['deleting', 'delete_failed'];
-
-const DELETION_STATUSES: readonly IMPORT_STATUS[] = [IMPORT_STATUS.DELETING, IMPORT_STATUS.DELETED];
-
-/** No job is known yet: the upload is in flight, being recovered or waiting for the person. */
-export const isAwaitingUploadOutcome = (operation: ImportOperation): boolean => {
-  return operation.jobId === null && UPLOAD_OUTCOME_PHASES.includes(operation.phase);
-};
-
-/** The server holds a job for this operation, and the operation is not finished. */
-export const hasServerJob = (operation: ImportOperation): boolean => {
-  return operation.jobId !== null && SERVER_JOB_PHASES.includes(operation.phase);
-};
-
-/**
- * The server keeps a job worth deleting: a running or finished import, or one whose status read
- * was refused after the job had been created.
- */
-export const canDeleteOnServer = (operation: ImportOperation): boolean => {
-  return hasServerJob(operation) || (operation.phase === 'failed' && operation.jobId !== null);
-};
-
-export const phaseForStatus = (status: IMPORT_STATUS): ImportPhase => {
+const phaseForStatus = (status: IMPORT_STATUS): ImportPhase => {
   return STATUS_PHASE[status];
 };
 
@@ -175,10 +142,6 @@ const applyUploadAccepted = (operation: ImportOperation, job: ImportJob): Import
     phase: phaseForStatus(job.status),
     failure: null
   });
-};
-
-const isUploadInFlight = (operation: ImportOperation): boolean => {
-  return operation.jobId === null && UPLOAD_IN_FLIGHT_PHASES.includes(operation.phase);
 };
 
 /**

@@ -3,6 +3,7 @@ import {HTTP_STATUS} from '@/src/constants/HTTP_STATUS';
 import {LIMITS} from '@/src/constants/LIMITS';
 import {ApiResult} from '@/src/types/importApi';
 import {ERROR_KIND, resolveHttpStatusErrorKind} from '@/src/utils/errors/resolveErrorKind';
+import {isRecord, parseJson} from '@/src/utils/json/parseJson';
 
 /** Scenarios of the mock server, switched only from diagnostics and tests. */
 export enum MOCK_SCENARIO {
@@ -20,7 +21,7 @@ export type MockCounters = {
   deleteRequests: number;
 };
 
-export type MockJob = {
+type MockJob = {
   jobId: string;
   status: string;
   revision: number;
@@ -33,8 +34,9 @@ export type MockState = {
   jobs: MockJob[];
 };
 
-const SCENARIOS: readonly string[] = Object.values(MOCK_SCENARIO);
-const COUNTER_KEYS: readonly (keyof MockCounters)[] = [
+export const MOCK_SCENARIOS: readonly MOCK_SCENARIO[] = Object.values(MOCK_SCENARIO);
+
+export const MOCK_COUNTER_KEYS: readonly (keyof MockCounters)[] = [
   'createRequests',
   'newJobs',
   'duplicateHits',
@@ -42,17 +44,14 @@ const COUNTER_KEYS: readonly (keyof MockCounters)[] = [
   'deleteRequests'
 ];
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-};
-
 const isScenario = (value: unknown): value is MOCK_SCENARIO => {
-  return typeof value === 'string' && SCENARIOS.includes(value);
+  return typeof value === 'string' && MOCK_SCENARIOS.some((scenario) => scenario === value);
 };
 
 const isCounters = (value: unknown): value is MockCounters => {
   return (
-    isRecord(value) && COUNTER_KEYS.every((counterKey) => typeof value[counterKey] === 'number')
+    isRecord(value) &&
+    MOCK_COUNTER_KEYS.every((counterKey) => typeof value[counterKey] === 'number')
   );
 };
 
@@ -67,8 +66,8 @@ const isMockJob = (value: unknown): value is MockJob => {
 };
 
 /** Reads `GET /__test/state`; drops the hashes, which the screen never shows. */
-export const readMockState = (body: string): MockState | null => {
-  const value = parseBody(body);
+const readMockState = (body: string): MockState | null => {
+  const value = parseJson(body);
   if (!isRecord(value) || !isScenario(value.mode) || !isCounters(value.stats)) {
     return null;
   }
@@ -82,14 +81,6 @@ export const readMockState = (body: string): MockState | null => {
     bytes
   }));
   return {mode: value.mode, stats: value.stats, jobs};
-};
-
-const parseBody = (body: string): unknown => {
-  try {
-    return JSON.parse(body);
-  } catch {
-    return null;
-  }
 };
 
 /** The mock's test routes. They exist for the reviewer and the tests, never for the import itself. */
@@ -154,5 +145,3 @@ export const createMockControlApi = (baseUrl: string) => {
 
   return {checkHealth, getState, setScenario, reset};
 };
-
-export type MockControlApi = ReturnType<typeof createMockControlApi>;

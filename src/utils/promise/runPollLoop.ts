@@ -1,4 +1,4 @@
-import {wait} from '@/src/utils/promise/wait';
+import {wait, WaitFunction} from '@/src/utils/promise/wait';
 
 export enum POLL_STEP {
   /** The read got an answer: the next one comes after the normal interval. */
@@ -14,7 +14,7 @@ type PollLoopOptions = {
   /** Checked before every read; false ends the loop. */
   shouldContinue: () => boolean;
   readOnce: () => Promise<POLL_STEP>;
-  waitFor?: (ms: number) => Promise<void>;
+  waitFor?: WaitFunction;
 };
 
 export const nextBackoffDelay = (currentDelayMs: number, maxBackoffMs: number): number => {

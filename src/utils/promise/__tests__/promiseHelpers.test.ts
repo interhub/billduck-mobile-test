@@ -8,8 +8,8 @@ describe('runDelayLadder', () => {
     const result = await runDelayLadder(
       [1000, 2000, 4000],
       async (attempt) => (attempt === 2 ? 'found' : null),
-      async (ms) => {
-        waits.push(ms);
+      async (delayMs) => {
+        waits.push(delayMs);
       }
     );
     expect(result).toBe('found');
@@ -42,8 +42,8 @@ describe('runPollLoop', () => {
       maxBackoffMs: 4000,
       shouldContinue: () => true,
       readOnce: async () => steps.shift() ?? POLL_STEP.STOP,
-      waitFor: async (ms) => {
-        pauses.push(ms);
+      waitFor: async (delayMs) => {
+        pauses.push(delayMs);
       }
     });
     expect(pauses).toEqual([1000, 2000, 4000, 4000, 500]);

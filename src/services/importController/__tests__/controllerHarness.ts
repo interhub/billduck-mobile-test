@@ -3,9 +3,9 @@ import {
   createImportController,
   ImportController
 } from '@/src/services/importController/createImportController';
-import {AppActivity} from '@/src/services/importController/importControllerTypes';
 import {createOperationRepository} from '@/src/services/importController/operationRepository';
 import {INITIAL_IMPORT_STATE, useImportStore} from '@/src/stores/importStore';
+import {AppActivity} from '@/src/types/statementFiles';
 import {TIMELINE_EVENT} from '@/src/utils/import/importTimeline';
 import {wait} from '@/src/utils/promise/wait';
 import {CSV_STATEMENT, FakeImportBackend} from './fakeImportBackend';
@@ -46,7 +46,7 @@ export const createActivity = (): ActivityHandle => {
 };
 
 /** Readable, unique keys of 12 characters, inside the 8-128 the server accepts. */
-export const createKeyFactory = () => {
+export const createUuidFactory = () => {
   const counter = {value: 0};
   return () => {
     counter.value += 1;
@@ -62,7 +62,7 @@ export type LaunchedController = {
 /** One app process: a controller on the shared AsyncStorage and the shared store. */
 export const launchController = (
   backend: FakeImportBackend,
-  createKey = createKeyFactory()
+  createUuid = createUuidFactory()
 ): LaunchedController => {
   const activity = createActivity();
   const controller = createImportController({
@@ -71,7 +71,7 @@ export const launchController = (
     files: backend.files,
     store: useImportStore,
     activity: activity.activity,
-    createKey,
+    createUuid,
     now: () => new Date(),
     wait
   });
@@ -85,11 +85,11 @@ export const launchController = (
 export const crashAndRelaunch = async (
   crashed: LaunchedController,
   backend: FakeImportBackend,
-  createKey = createKeyFactory()
+  createUuid = createUuidFactory()
 ): Promise<LaunchedController> => {
   crashed.activity.goBackground();
   useImportStore.setState({...INITIAL_IMPORT_STATE});
-  const relaunched = launchController(backend, createKey);
+  const relaunched = launchController(backend, createUuid);
   await relaunched.controller.restore();
   return relaunched;
 };

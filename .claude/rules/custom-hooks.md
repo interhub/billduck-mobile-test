@@ -55,7 +55,7 @@ export const useAppActiveChange = (onActiveChange: (isActive: boolean) => void):
 - The import operation lives in `src/services/importController/`, never in a hook or a screen. Hooks and screens never upload, poll, retry or start timers for it.
 - `src/stores/importStore.ts` mirrors the operation for the UI. Only the controller writes it; from `uploading` on, only after the repository has stored the operation with `await AsyncStorage.setItem`.
 - Screens read `importStore` and call controller actions (for example `pickFile`, `send`, `retry`, `sendAgain`, `cancelUpload`, `refreshStatus`, `deleteImport`); they never write into the store.
-- Never persist the operation through the Zustand `persist` middleware (`STORAGE_TYPE.PERSIST_STORAGE`): its writes are not awaited, so a key could leave the device before it is stored. `importStore` is a `STORAGE_TYPE.SESSION` store; the repository owns AsyncStorage.
+- Never persist the operation through the Zustand `persist` middleware: its writes are not awaited, so a key could leave the device before it is stored. The store factory has no persist mode: `importStore` is a `STORAGE_TYPE.SESSION` store; the repository owns AsyncStorage.
 - Leaving or unmounting a screen never cancels, resets or loses the operation.
 - Shared import hooks (`src/hooks/import/`) only select from `importStore` and hand out controller actions.
 

@@ -17,22 +17,8 @@ import {BORDER_WIDTH, ICON_SIZE, SPACING, STATUS_DOT_SIZE} from '@/src/constants
 import {TextLine} from '@/src/components/ui/TextLine';
 import {useReduceMotion} from '@/src/hooks/sensors/useReduceMotion';
 import {useTranslation} from '@/src/i18n/useTranslation';
-import {ImportPhase} from '@/src/types/importOperation';
+import {BadgePhase} from '@/src/utils/import/importPhases';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
-
-export type BadgePhase = Exclude<ImportPhase, 'validating' | 'rejected' | 'confirming'>;
-
-const PRE_SEND_PHASES: readonly ImportPhase[] = ['validating', 'rejected', 'confirming'];
-
-const isBadgePhase = (phase: ImportPhase): phase is BadgePhase => !PRE_SEND_PHASES.includes(phase);
-
-/** The pre-send phases have no badge. */
-export const toBadgePhase = (phase: ImportPhase): BadgePhase | null => {
-  if (isBadgePhase(phase)) {
-    return phase;
-  }
-  return null;
-};
 
 type BadgeLook = {
   color: keyof ThemeColors;

@@ -1,8 +1,10 @@
 import {ImportOperation, ImportPhase, PendingCleanup} from '@/src/types/importOperation';
+import {STORED_PHASES} from '@/src/utils/import/importPhases';
+import {isRecord, parseJson} from '@/src/utils/json/parseJson';
 import {logger} from '@/src/utils/logger/logger';
 import {LOG_NAME, LOG_TYPE} from '@/src/utils/logger/LOG_NAME';
 
-export type OperationSnapshot = {
+type OperationSnapshot = {
   operation: ImportOperation | null;
   pendingCleanups: PendingCleanup[];
 };
@@ -23,25 +25,6 @@ export type KeyValueStorage = {
 /** The AsyncStorage key of the stored import state. */
 export const OPERATION_STORAGE_KEY = 'billduck.import_operation.v1';
 const EMPTY_SNAPSHOT: OperationSnapshot = {operation: null, pendingCleanups: []};
-
-const STORED_PHASES: readonly ImportPhase[] = [
-  'uploading',
-  'reconnecting',
-  'server_unavailable',
-  'not_received',
-  'queued',
-  'processing',
-  'ready',
-  'failed',
-  'deleting',
-  'delete_failed',
-  'deleted',
-  'gone_on_server'
-];
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-};
 
 const isStoredPhase = (value: unknown): value is ImportPhase => {
   return typeof value === 'string' && STORED_PHASES.some((phase) => phase === value);
@@ -70,14 +53,6 @@ const isOperation = (value: unknown): value is ImportOperation => {
 
 const isPendingCleanup = (value: unknown): value is PendingCleanup => {
   return isRecord(value) && typeof value.idempotencyKey === 'string';
-};
-
-const parseJson = (raw: string): unknown => {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
 };
 
 /** The stored JSON passes a typed guard; anything else is treated as a damaged record. */

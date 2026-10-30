@@ -74,7 +74,7 @@ const usePaymentCardStyles = getResponsiveStylesHook(({colors}) =>
 - `gap` between children, `padding` inside a component, `margin` only when neither fits.
 - Avoid absolute positioning; when it is unavoidable use `StyleSheet.absoluteFill`.
 - `SPACING` (`src/constants/UI_SIZES.ts`): `xs` 4, `sm` 8, `md` 12, `lg` 16, `xl` 24, `xxl` 32. Screen side padding 16-20.
-- `RADIUS`: `button` 10 (buttons and fields), `card` 16, `sheet` 24 (sheets and dialogs).
+- `RADIUS`: `button` 10 (buttons and fields), `card` 16.
 - `TOUCH_TARGET`: at least 44x44 pt on iOS and 48x48 on Android; grow small visuals with `hitSlop`.
 - Borders are `borderWidth: 1` in `border`. No shadows, except one soft warm shadow under a sheet.
 - `ICON_SIZE`: `sm` 20, `md` 24. Every size is a named constant, never a number in JSX.
@@ -99,10 +99,6 @@ const usePaymentCardStyles = getResponsiveStylesHook(({colors}) =>
 
 ## Motion
 - Animate with the built-in `Animated` API and `useNativeDriver: true`: the native driver moves only `opacity` and `transform`, never layout. Create each `Animated.Value` once in a `useState` initializer (`const [opacity] = useState(() => new Animated.Value(1));`): React Compiler forbids reading `ref.current` during render.
-- 150-250 ms with `Easing.bezier(0.16, 1, 0.3, 1)` in `Animated.timing`, or `Animated.spring` with stiffness 100 and damping 20 (`MOTION` in `src/constants/UI_MOTION.ts`). The one slow loop is the pulse of an active status dot: a 1200 ms cycle on a sine curve (`MOTION.pulseCycleMs`, `MOTION.pulseEasing`).
+- 150-250 ms with `Easing.bezier(0.16, 1, 0.3, 1)` in `Animated.timing` (`MOTION` in `src/constants/UI_MOTION.ts`). The one slow loop is the pulse of an active status dot: a 1200 ms cycle on a sine curve (`MOTION.pulseCycleMs`, `MOTION.pulseEasing`).
 - A status change cross-fades; it never jumps.
 - Reduce Motion comes from `useReduceMotion()` (`src/hooks/sensors/useReduceMotion.ts`), built on `AccessibilityInfo.isReduceMotionEnabled()` and the `reduceMotionChanged` event. While it is on, skip every animation and show the end state: no pulse, no press scale, no cross-fade.
-
-## Modals
-- Every `<Modal>`, including sheets and overlays built on it, passes `supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}` from `src/constants/MODAL_SUPPORTED_ORIENTATIONS.ts` (portrait, matching the app).
-- Never hand-write an orientation array at the call site: a modal whose orientations miss the app's crashes a release build and only logs a warning in development.

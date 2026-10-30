@@ -2,7 +2,6 @@ import {RouteProp, useRoute} from '@react-navigation/native';
 import {StyleSheet, View} from 'react-native';
 import {Card} from '@/src/components/ui/Card';
 import {InfoRow} from '@/src/components/ui/InfoRow';
-import {describeCadence} from '@/src/components/ui/PaymentRow';
 import {ScreenHeader} from '@/src/components/ui/ScreenHeader';
 import {ScreenLayout} from '@/src/components/ui/ScreenLayout';
 import {TextLine} from '@/src/components/ui/TextLine';
@@ -11,6 +10,7 @@ import {useTranslation} from '@/src/i18n/useTranslation';
 import {useAppNavigation} from '@/src/navigation/hooks/useAppNavigation';
 import {RootStackParamList, SCREEN_NAME} from '@/src/navigation/types';
 import {useImportStore} from '@/src/stores/importStore';
+import {describeCadence} from '@/src/utils/format/describeCadence';
 import {formatCalendarDate} from '@/src/utils/format/formatDate';
 import {formatMoney} from '@/src/utils/format/formatMoney';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
@@ -50,7 +50,7 @@ export const PaymentDetailsScreen = () => {
         />
         <InfoRow
           label={t.paymentDetails.cadenceLabel}
-          value={describeCadence(paymentItem.cadence, t)}
+          value={describeCadence(paymentItem.cadence, language)}
         />
         <InfoRow
           label={t.paymentDetails.lastChargeLabel}

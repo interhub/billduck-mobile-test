@@ -1,7 +1,7 @@
 import {ImportsApi} from '@/src/api/importsApi/importsApi';
 import {IMPORT_STATUS} from '@/src/constants/IMPORT_STATUS';
-import {StatementFileStore} from '@/src/services/importController/importControllerTypes';
 import {ApiResult, ImportJob} from '@/src/types/importApi';
+import {StatementFileStore} from '@/src/types/statementFiles';
 import {ERROR_KIND} from '@/src/utils/errors/resolveErrorKind';
 
 export type FakeScenario = 'happy' | 'lost_ack' | 'stale_status' | 'delete_failure';

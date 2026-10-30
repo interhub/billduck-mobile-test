@@ -22,15 +22,15 @@
 | `src/api/importsApi/` | `importsApi.ts` (POST, by-key, GET, DELETE), `httpRequest.ts` (timed requests), `nativeFileUploader.ts` (the streaming upload) and `mockControlApi.ts` (`/__test/*`) |
 | `src/components/ui/` | The shared UI kit, flat (`ui-kit.md`) |
 | `src/config/env.ts` | `ENV`, read from `EXPO_PUBLIC_*` |
-| `src/constants/` | Flat registries: `UI_COLORS`, `UI_SIZES`, `UI_MOTION`, `FONT_NAME`, `LIMITS`, `IMPORT_STATUS`, `HTTP_STATUS`, `MODAL_SUPPORTED_ORIENTATIONS` |
+| `src/constants/` | Flat registries: `UI_COLORS`, `UI_SIZES`, `UI_MOTION`, `FONT_NAME`, `LIMITS`, `IMPORT_STATUS`, `HTTP_STATUS` |
 | `src/hooks/` | Hooks shared by more than one screen, in `sensors/`, `styles/`, `import/`; the app start hook `useInitialAppLoading.ts` sits at the root |
-| `src/i18n/` | `translations.ts` (every UI string in English and Russian, one file), `resolveSystemLanguage.ts` and `useTranslation.ts` |
+| `src/i18n/` | `translationsEn.ts` and `translationsRu.ts` (every UI string, the same keys in both), `translations.ts` (`LANGUAGE` and the `TRANSLATIONS` map), `resolveSystemLanguage.ts` and `useTranslation.ts` |
 | `src/navigation/` | `RootNavigator.tsx`, `types.ts`, `hooks/useAppNavigation.ts`, `config/navRef.ts` |
 | `src/screens/<Feature>/` | `Home/`, `Import/` (confirm, status, result, payment details), `Diagnostics/`; the screen file at the root, then `components/`, `hooks/`, `logic/` |
 | `src/services/importController/` | The long-lived import controller (send, recover, cancel with cleanup, replace the previous statement, poll, delete) and the operation repository |
 | `src/stores/` | `importStore.ts`, `appStateStore.ts` |
-| `src/types/` | API and import operation types shared across modules |
-| `src/utils/` | Helpers by concern: `logger/`, `errors/`, `files/`, `import/`, `format/`, `promise/`, `styles/`, `store/` |
+| `src/types/` | API, import operation, draft and statement file types shared across modules |
+| `src/utils/` | Helpers by concern: `logger/`, `errors/`, `files/`, `import/`, `format/`, `promise/`, `styles/`, `store/`, `json/` |
 | `tests/integration/` | Tests against the real mock (`testing.md`) |
 | `docs/` | `qa-report/` (the QA report with screenshots), `test-results/` (saved test output), `PROMPT.md`; never imported |
 | `README.md`, `RELEASE_NOTE.md`, `SELF_REVIEW.md` | Documents for the reviewer |
@@ -44,7 +44,7 @@
 - Screen-only pure logic (no React, no JSX): `src/screens/<Feature>/logic/`.
 - The import operation has fixed homes and never lives in a screen: phase reducer, revision guard and the binding of answers to the operation in `src/utils/import/`, size and signature checks, generated names and temp copies in `src/utils/files/`, HTTP in `src/api/importsApi/`, orchestration and persistence in `src/services/importController/`, the UI mirror in `src/stores/importStore.ts`.
 - Money, date and file size formatting: `src/utils/format/`. Waits and repeat ladders: `src/utils/promise/`.
-- UI strings: only `src/i18n/translations.ts`, both languages in the same change.
+- UI strings: only `src/i18n/translationsEn.ts` and `src/i18n/translationsRu.ts`, both languages in the same change.
 - Types: local types stay next to their consumer; only types crossing modules go to `src/types/`.
 - Global state: one flat `xxxStore.ts` per domain in `src/stores/`, never inside a feature folder. Read the list before adding one.
 - A constant other files read goes into an existing registry in `src/constants/` when one fits; a new registry file only for a genuinely new category.
@@ -77,7 +77,7 @@ Hook names equal file names, so a name search finds them. Small helpers hide ins
 ```
 find src -name "use*<Word>*.ts*"                        # is this hook already written
 ls src/components/ui src/stores src/constants           # the kit, the stores, the registries
-grep -rn "<name>" src/constants src/navigation/types.ts src/i18n/translations.ts
+grep -rn "<name>" src/constants src/navigation/types.ts src/i18n/translationsEn.ts
 grep -rn "formatMoney\|formatDate\|formatFileSize" src  # formatting already exists
 grep -rl "<SymbolName>" src | wc -l                     # 1 means it is dead code
 ```
@@ -88,16 +88,15 @@ grep -rl "<SymbolName>" src | wc -l                     # 1 means it is dead cod
 |---|---|
 | `src/constants/UI_COLORS.ts` | Light and dark palettes, `PAYMENT_DOT_COLORS` |
 | `src/constants/UI_SIZES.ts` | `SPACING`, `RADIUS`, `TOUCH_TARGET`, `ICON_SIZE`, `SCREEN_PADDING`, `BORDER_WIDTH`, `STATUS_DOT_SIZE`, `PAYMENT_DOT_SIZE`, `ILLUSTRATION`, `LOGO` |
-| `src/constants/UI_MOTION.ts` | `MOTION`: durations, easing, spring |
+| `src/constants/UI_MOTION.ts` | `MOTION`: durations, easing, press scale, status pulse |
 | `src/constants/FONT_NAME.ts` | Font families |
 | `src/constants/LIMITS.ts` | File size limit, timeouts, recovery delays, polling and backoff intervals |
-| `src/constants/IMPORT_STATUS.ts` | Job statuses the server returns |
+| `src/constants/IMPORT_STATUS.ts` | Job statuses the server returns, `DELETION_STATUSES` |
 | `src/constants/HTTP_STATUS.ts` | HTTP status codes the app reads or records |
-| `src/constants/MODAL_SUPPORTED_ORIENTATIONS.ts` | `MODAL_SUPPORTED_ORIENTATIONS` |
 | `src/utils/logger/LOG_NAME.ts` | `LOG_NAME` and `LOG_TYPE` |
 | `src/utils/errors/resolveErrorKind.ts` | `ERROR_KIND` and the only error classifier |
 | `src/navigation/types.ts` | `SCREEN_NAME` and every route param |
-| `src/i18n/translations.ts` | Every UI string, English and Russian with the same keys |
+| `src/i18n/translationsEn.ts`, `translationsRu.ts` | Every UI string, English and Russian with the same keys (the `Translation` type comes from the English file) |
 
 ## Reuse Catalogue
 - Styling: `utils/styles/getResponsiveStylesHook`, `hooks/styles/useThemeColors`.

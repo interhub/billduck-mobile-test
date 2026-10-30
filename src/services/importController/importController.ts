@@ -18,7 +18,7 @@ export const importController = createImportController({
   files: statementFileStore,
   store: useImportStore,
   activity: appActivity,
-  createKey: randomUUID,
+  createUuid: randomUUID,
   now: () => new Date(),
   wait
 });

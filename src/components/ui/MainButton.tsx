@@ -1,4 +1,3 @@
-import {ReactNode} from 'react';
 import {ActivityIndicator, StyleProp, StyleSheet, View, ViewStyle} from 'react-native';
 import {ThemeColors} from '@/src/constants/UI_COLORS';
 import {BORDER_WIDTH, RADIUS, SPACING, TOUCH_TARGET} from '@/src/constants/UI_SIZES';
@@ -7,7 +6,7 @@ import {TouchableScaleView} from '@/src/components/ui/TouchableScaleView';
 import {useThemeColors} from '@/src/hooks/styles/useThemeColors';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
 
-export type MainButtonVariant = 'primary' | 'secondary' | 'destructive' | 'quiet';
+type MainButtonVariant = 'primary' | 'secondary' | 'destructive' | 'quiet';
 
 type MainButtonProps = {
   title: string;
@@ -17,8 +16,6 @@ type MainButtonProps = {
   disabled?: boolean;
   /** Defaults to the title. */
   accessibilityLabel?: string;
-  /** A Phosphor icon drawn before the title. */
-  icon?: ReactNode;
   style?: StyleProp<ViewStyle>;
   testID?: string;
 };
@@ -39,17 +36,16 @@ const pickDisabledStyle = (isDisabled: boolean, disabledStyle: ViewStyle): ViewS
 
 type ButtonLeadingProps = {
   isLoading: boolean;
-  icon: ReactNode;
   color: keyof ThemeColors;
 };
 
-/** The spinner while loading, otherwise the optional icon before the title. */
-const ButtonLeading = ({isLoading, icon, color}: ButtonLeadingProps) => {
+/** The spinner before the title while loading. */
+const ButtonLeading = ({isLoading, color}: ButtonLeadingProps) => {
   const colors = useThemeColors();
-  if (isLoading) {
-    return <ActivityIndicator color={colors[color]} />;
+  if (!isLoading) {
+    return null;
   }
-  return icon;
+  return <ActivityIndicator color={colors[color]} />;
 };
 
 /** Every screen action. `loading` and `disabled` block presses and say so to screen readers. */
@@ -60,7 +56,6 @@ export const MainButton = ({
   loading = false,
   disabled = false,
   accessibilityLabel,
-  icon,
   style,
   testID
 }: MainButtonProps) => {
@@ -82,7 +77,7 @@ export const MainButton = ({
         accessibilityState={{disabled: isBlocked, busy: loading}}
         style={buttonStyle}
       >
-        <ButtonLeading isLoading={loading} icon={icon} color={textColor} />
+        <ButtonLeading isLoading={loading} color={textColor} />
         <TextLine variant="label" color={textColor} align="center" style={styles.title}>
           {title}
         </TextLine>

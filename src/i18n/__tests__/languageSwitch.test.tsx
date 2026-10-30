@@ -19,7 +19,7 @@ const Slogan = () => {
 
 describe('language follows the system while the app runs', () => {
   beforeEach(() => {
-    useAppStateStore.setState({language: LANGUAGE.EN, isActive: true, appState: 'active'});
+    useAppStateStore.setState({language: LANGUAGE.EN, isActive: true});
   });
 
   it('switches the texts when the app returns to the foreground after a language change', async () => {
