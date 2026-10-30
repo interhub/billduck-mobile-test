@@ -26,7 +26,7 @@ describe('language follows the system while the app runs', () => {
     const listeners: ((state: AppStateStatus) => void)[] = [];
     jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, listener) => {
       listeners.push(listener);
-      return {remove: jest.fn()} as unknown as ReturnType<typeof AppState.addEventListener>;
+      return {remove: jest.fn()};
     });
     await render(<Slogan />);
     expect(screen.getByText('Where does my money go?')).toBeTruthy();

@@ -1,14 +1,7 @@
 const {mkdirSync, writeFileSync} = require('node:fs');
 const path = require('node:path');
-const {AndroidConfig, withAndroidManifest, withDangerousMod} = require('@expo/config-plugins');
+const {AndroidConfig, withAndroidManifest, withDangerousMod} = require('expo/config-plugins');
 
-/**
- * Lets the app use plain HTTP only for 127.0.0.1 and localhost: the local mock server and Metro,
- * both reached from the emulator through `adb reverse`. Every other host keeps the Android
- * default, HTTPS only.
- * Idempotent: the XML file is rewritten with the same content and the manifest attribute is
- * overwritten, so a repeated prebuild changes nothing.
- */
 const CONFIG_NAME = 'network_security_config';
 const LOCAL_HOSTS = ['127.0.0.1', 'localhost'];
 
@@ -51,6 +44,13 @@ const withNetworkSecurityConfigReference = (config) => {
   });
 };
 
+/**
+ * Lets the app use plain HTTP only for 127.0.0.1 and localhost: the local mock server and Metro,
+ * both reached from the emulator through `adb reverse`. Every other host keeps the Android
+ * default, HTTPS only.
+ * Idempotent: the XML file is rewritten with the same content and the manifest attribute is
+ * overwritten, so a repeated prebuild changes nothing.
+ */
 const withLocalCleartextTraffic = (config) => {
   return withNetworkSecurityConfigReference(withNetworkSecurityConfigFile(config));
 };

@@ -18,6 +18,38 @@ const BLOCKED_ANDROID_PERMISSIONS = [
   'android.permission.ACCESS_NETWORK_STATE'
 ];
 
+const PLUGINS: ExpoConfig['plugins'] = [
+  [
+    'expo-splash-screen',
+    {
+      backgroundColor: GRAPHITE,
+      image: './assets/images/splash-icon.png',
+      imageWidth: 144,
+      resizeMode: 'contain',
+      ios: {
+        backgroundColor: GRAPHITE,
+        image: './assets/images/splash-icon.png',
+        imageWidth: 128,
+        resizeMode: 'contain'
+      }
+    }
+  ],
+  [
+    'expo-localization',
+    {
+      supportedLocales: {
+        ios: ['en', 'ru'],
+        android: ['en', 'ru']
+      }
+    }
+  ],
+  './plugins/withIosSceneLifecycle.js',
+  './plugins/withLocalCleartextTraffic.js',
+  './plugins/withAndroidNavigationBarContrast.js',
+  './plugins/withMainActivityConfigChanges.js',
+  './plugins/withAndroidGradleMemory.js'
+];
+
 export default ({config}: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'BillDuck',
@@ -47,37 +79,7 @@ export default ({config}: ConfigContext): ExpoConfig => ({
     blockedPermissions: BLOCKED_ANDROID_PERMISSIONS,
     predictiveBackGestureEnabled: false
   },
-  plugins: [
-    [
-      'expo-splash-screen',
-      {
-        backgroundColor: GRAPHITE,
-        image: './assets/images/splash-icon.png',
-        imageWidth: 144,
-        resizeMode: 'contain',
-        ios: {
-          backgroundColor: GRAPHITE,
-          image: './assets/images/splash-icon.png',
-          imageWidth: 128,
-          resizeMode: 'contain'
-        }
-      }
-    ],
-    [
-      'expo-localization',
-      {
-        supportedLocales: {
-          ios: ['en', 'ru'],
-          android: ['en', 'ru']
-        }
-      }
-    ],
-    './plugins/withIosSceneLifecycle.js',
-    './plugins/withLocalCleartextTraffic.js',
-    './plugins/withAndroidNavigationBarContrast.js',
-    './plugins/withMainActivityConfigChanges.js',
-    './plugins/withAndroidGradleMemory.js'
-  ],
+  plugins: PLUGINS,
   experiments: {
     reactCompiler: true
   }

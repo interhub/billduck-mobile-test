@@ -1,16 +1,30 @@
+import {BYTE_UNITS} from '@/src/constants/BYTE_UNITS';
+import {LIMITS} from '@/src/constants/LIMITS';
 import {Translation} from '@/src/i18n/translationsEn';
+
+const MAX_FILE_SIZE_MEGABYTES = LIMITS.MAX_FILE_SIZE_BYTES / BYTE_UNITS.MEGABYTE;
+
+/** The word form follows the last digit, except for the teens, which always take the "many" form. */
+const PLURAL_RULE = {
+  LAST_TWO_DIGITS_MODULUS: 100,
+  LAST_DIGIT_MODULUS: 10,
+  TEENS_FROM: 11,
+  TEENS_TO: 14,
+  FEW_FROM: 2,
+  FEW_TO: 4
+} as const;
 
 /** Russian picks one of three word forms by the last digits of the number. */
 const pickRussianForm = (count: number, one: string, few: string, many: string): string => {
-  const lastTwoDigits = Math.abs(count) % 100;
-  const lastDigit = lastTwoDigits % 10;
-  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+  const lastTwoDigits = Math.abs(count) % PLURAL_RULE.LAST_TWO_DIGITS_MODULUS;
+  const lastDigit = lastTwoDigits % PLURAL_RULE.LAST_DIGIT_MODULUS;
+  if (lastTwoDigits >= PLURAL_RULE.TEENS_FROM && lastTwoDigits <= PLURAL_RULE.TEENS_TO) {
     return many;
   }
   if (lastDigit === 1) {
     return one;
   }
-  if (lastDigit >= 2 && lastDigit <= 4) {
+  if (lastDigit >= PLURAL_RULE.FEW_FROM && lastDigit <= PLURAL_RULE.FEW_TO) {
     return few;
   }
   return many;
@@ -27,12 +41,14 @@ export const TRANSLATIONS_RU: Translation = {
   },
   format: {
     decimalSeparator: ',',
-    groupSeparator: ' ',
+    // A no-break space: a number never wraps between its digit groups.
+    groupSeparator: '\u00A0',
     bytes: 'Б',
     kilobytes: 'КБ',
     megabytes: 'МБ',
     months: ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'],
     statementWord: 'Выписка',
+    titleSeparator: ' · ',
     perMonth: (amount: string) => `${amount} в месяц`,
     exactBytes: (bytes: string) => `${bytes} байт`
   },
@@ -78,7 +94,7 @@ export const TRANSLATIONS_RU: Translation = {
     nothingSent: 'На сервер ничего не отправлено.',
     rejection: {
       fake_pdf: 'Это не настоящий PDF.',
-      too_large: 'Файл больше 10 МБ.',
+      too_large: `Файл больше ${MAX_FILE_SIZE_MEGABYTES} МБ.`,
       empty: 'Файл пустой.',
       unsupported: 'Неподдерживаемый файл.',
       unreadable: 'Файл не читается.'

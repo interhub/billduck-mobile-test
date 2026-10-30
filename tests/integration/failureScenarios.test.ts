@@ -1,55 +1,52 @@
-import {readFileSync} from 'node:fs';
 import path from 'node:path';
-import {createImportsApi} from '@/src/api/importsApi/importsApi';
 import {MOCK_SCENARIO} from '@/src/api/importsApi/mockControlApi';
 import {useImportStore} from '@/src/stores/importStore';
 import {TIMELINE_EVENT} from '@/src/utils/import/importTimeline';
 import {
   createPhone,
+  disposePhones,
   FIXTURES,
   importPhase,
-  mock,
-  network,
   readCounters,
+  readMockState,
+  relaunch,
+  resetMock,
   startScenario,
-  waitForImport
-} from './support/importTestEnvironment';
+  switchScenario,
+  waitForImport,
+  waitForPhase
+} from '@/tests/integration/support/importTestEnvironment';
+import {
+  createNodeImportsApi,
+  installRequestRecorder,
+  network
+} from '@/tests/integration/support/nodeNetwork';
 
-const isReady = () => importPhase() === 'ready';
+installRequestRecorder();
+afterEach(disposePhones);
+
 const events = () => useImportStore.getState().timeline.map((entry) => entry.event);
-
-const directApi = () =>
-  createImportsApi({
-    baseUrl: process.env.MOCK_BASE_URL ?? '',
-    uploadFile: async ({url, fileUri, headers}) => {
-      const response = await fetch(url, {method: 'POST', headers, body: readFileSync(fileUri)});
-      return {status: response.status, body: await response.text()};
-    }
-  });
 
 /** Another client's upload, made straight through the API client. */
 const uploadDirectly = async (fixture: string, idempotencyKey: string): Promise<string | null> => {
-  const result = await directApi().createImport({
+  const result = await createNodeImportsApi().createImport({
     fileUri: path.join(FIXTURES, fixture),
     idempotencyKey,
     serverFileName: 'statement-20261029-1432.pdf'
   });
-  return result.success ? result.payload.jobId : null;
+  if (!result.success) {
+    return null;
+  }
+  return result.payload.jobId;
 };
 
 describe('lost_ack', () => {
-  const phone = createPhone();
-
-  afterAll(phone.dispose);
-
   it('recovers the job by key with no button and creates one job', async () => {
     await startScenario(MOCK_SCENARIO.LOST_ACK);
-    const {controller} = phone.launch();
-    phone.pickFixture('statement.csv');
-    await controller.pickFile();
-    void controller.send();
-    await waitForImport(() => importPhase() === 'reconnecting');
-    await waitForImport(isReady);
+    const app = createPhone().launch();
+    await app.sendFixture('statement.csv');
+    await waitForPhase('reconnecting');
+    await waitForPhase('ready');
     expect(events()).toEqual(
       expect.arrayContaining([TIMELINE_EVENT.UPLOAD_ANSWER_LOST, TIMELINE_EVENT.KEY_LOOKUP_FOUND])
     );
@@ -58,24 +55,20 @@ describe('lost_ack', () => {
 
   it('keeps one job when the app is restarted before the recovery', async () => {
     await startScenario(MOCK_SCENARIO.LOST_ACK);
+    const phone = createPhone();
     const first = phone.launch();
-    phone.pickFixture('statement.csv');
-    await first.controller.pickFile();
-    void first.controller.send();
-    await waitForImport(() => importPhase() === 'reconnecting');
-    first.crash();
-    useImportStore.setState({operation: null, payments: null, timeline: []});
-    const second = phone.launch();
-    await second.controller.restore();
+    await first.sendFixture('statement.csv');
+    await waitForPhase('reconnecting');
+    const second = await relaunch(phone, first);
     await second.controller.resume();
-    await waitForImport(isReady);
+    await waitForPhase('ready');
     expect(events()).toContain(TIMELINE_EVENT.APP_RESTARTED);
     expect(await readCounters()).toMatchObject({newJobs: 1, createRequests: 1});
   });
 
   it('answers a repeated POST with the same key and bytes with the same job and a duplicate hit', async () => {
     await startScenario(MOCK_SCENARIO.HAPPY);
-    const api = directApi();
+    const api = createNodeImportsApi();
     const request = {
       fileUri: path.join(FIXTURES, 'statement.csv'),
       idempotencyKey: `repeat-${Date.now()}`,
@@ -91,20 +84,14 @@ describe('lost_ack', () => {
 });
 
 describe('stale_status', () => {
-  const phone = createPhone();
-
-  afterAll(phone.dispose);
-
   it('skips processing r2 after ready r3 and keeps the report', async () => {
     await startScenario(MOCK_SCENARIO.HAPPY);
-    const {controller} = phone.launch();
-    phone.pickFixture('statement.csv');
-    await controller.pickFile();
-    void controller.send();
-    await waitForImport(isReady);
-    await mock.setScenario(MOCK_SCENARIO.STALE_STATUS);
-    await controller.refreshStatus();
-    await controller.refreshStatus();
+    const app = createPhone().launch();
+    await app.sendFixture('statement.csv');
+    await waitForPhase('ready');
+    await switchScenario(MOCK_SCENARIO.STALE_STATUS);
+    await app.controller.refreshStatus();
+    await app.controller.refreshStatus();
     const state = useImportStore.getState();
     expect(state.operation).toMatchObject({phase: 'ready', revision: 3});
     expect(state.payments?.items).toHaveLength(2);
@@ -119,23 +106,17 @@ describe('stale_status', () => {
 });
 
 describe('delete_failure', () => {
-  const phone = createPhone();
-
-  afterAll(phone.dispose);
-
   it('stays honest on a 503 and reaches deleted with the same key after happy', async () => {
     await startScenario(MOCK_SCENARIO.HAPPY);
-    const {controller} = phone.launch();
-    phone.pickFixture('statement.csv');
-    await controller.pickFile();
-    void controller.send();
-    await waitForImport(isReady);
-    await mock.setScenario(MOCK_SCENARIO.DELETE_FAILURE);
-    expect(await controller.deleteImport()).toBe('failed');
+    const app = createPhone().launch();
+    await app.sendFixture('statement.csv');
+    await waitForPhase('ready');
+    await switchScenario(MOCK_SCENARIO.DELETE_FAILURE);
+    expect(await app.controller.deleteImport()).toBe('failed');
     expect(importPhase()).toBe('delete_failed');
     expect(useImportStore.getState().outcome).toBeNull();
-    await mock.setScenario(MOCK_SCENARIO.HAPPY);
-    void controller.retry();
+    await switchScenario(MOCK_SCENARIO.HAPPY);
+    void app.controller.retry();
     await waitForImport((state) => state.outcome?.kind === 'deleted');
     const deleteKeys = network.recorded
       .filter((request) => request.method === 'DELETE')
@@ -147,24 +128,16 @@ describe('delete_failure', () => {
 });
 
 describe('a reset mock and a stopped mock', () => {
-  const phone = createPhone();
-
-  afterAll(phone.dispose);
-
   it('moves a job the server forgot to gone_on_server and never takes the new job with the same number', async () => {
     await startScenario(MOCK_SCENARIO.HAPPY);
+    const phone = createPhone();
     const first = phone.launch();
-    phone.pickFixture('statement.csv');
-    await first.controller.pickFile();
-    void first.controller.send();
-    await waitForImport(isReady);
-    await mock.reset();
+    await first.sendFixture('statement.csv');
+    await waitForPhase('ready');
+    await resetMock();
     const strangerJob = await uploadDirectly('statement.pdf', `stranger-${Date.now()}`);
     expect(strangerJob).toBe('job-demo-001');
-    first.crash();
-    useImportStore.setState({operation: null, payments: null});
-    const relaunched = phone.launch();
-    await relaunched.controller.restore();
+    const relaunched = await relaunch(phone, first);
     await relaunched.controller.resume();
     expect(useImportStore.getState().operation).toBeNull();
     expect(useImportStore.getState().outcome?.kind).toBe('gone_on_server');
@@ -173,21 +146,20 @@ describe('a reset mock and a stopped mock', () => {
 
   it('deletes a cancelled upload once the server answers again, if it got there', async () => {
     await startScenario(MOCK_SCENARIO.LOST_ACK);
-    const {controller} = phone.launch();
-    phone.pickFixture('statement.csv');
-    await controller.pickFile();
-    void controller.send();
-    await waitForImport(() => importPhase() === 'reconnecting');
+    const phone = createPhone();
+    const app = phone.launch();
+    await app.sendFixture('statement.csv');
+    await waitForPhase('reconnecting');
     network.isOffline = true;
-    await waitForImport(() => importPhase() === 'server_unavailable');
-    await controller.cancelUpload();
+    await waitForPhase('server_unavailable');
+    await app.controller.cancelUpload();
     expect(useImportStore.getState().pendingCleanups).toHaveLength(1);
     expect(phone.listCopies()).toEqual([]);
     network.isOffline = false;
-    await mock.setScenario(MOCK_SCENARIO.HAPPY);
-    await controller.runCleanups();
+    await switchScenario(MOCK_SCENARIO.HAPPY);
+    await app.controller.runCleanups();
     await waitForImport((state) => state.pendingCleanups.length === 0);
-    const state = await mock.getState();
-    expect(state.success && state.payload.jobs[0]?.status).toBe('deleted');
+    const {jobs} = await readMockState();
+    expect(jobs[0]?.status).toBe('deleted');
   });
 });

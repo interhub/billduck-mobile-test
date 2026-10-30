@@ -1,7 +1,7 @@
 import {ImportDraft, ImportOutcome, StatementPayments} from '@/src/types/importDraft';
 import {ImportOperation, PendingCleanup} from '@/src/types/importOperation';
 import {TimelineEntry} from '@/src/utils/import/importTimeline';
-import {createZustandStorageHook, STORAGE_TYPE} from '@/src/utils/store/createZustandStore';
+import {createZustandStorageHook} from '@/src/utils/store/createZustandStore';
 
 export type ImportStoreState = {
   /** True once the stored operation was read at launch. */
@@ -44,8 +44,7 @@ export const INITIAL_IMPORT_STATE: ImportStoreState = {
  * session store: the repository owns the disk and waits for every write.
  */
 export const useImportStore = createZustandStorageHook<ImportStoreState>(
-  () => INITIAL_IMPORT_STATE,
-  {storeType: STORAGE_TYPE.SESSION}
+  () => INITIAL_IMPORT_STATE
 );
 
 export type ImportStoreApi = typeof useImportStore;

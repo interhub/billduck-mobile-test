@@ -1,6 +1,6 @@
 import {AppStateStatus} from 'react-native';
 import {LANGUAGE} from '@/src/i18n/translations';
-import {createZustandStorageHook, STORAGE_TYPE} from '@/src/utils/store/createZustandStore';
+import {createZustandStorageHook} from '@/src/utils/store/createZustandStore';
 
 type AppStateStoreState = {
   /** True only while the app is in the foreground: polling and recovery wait for it. */
@@ -11,16 +11,13 @@ type AppStateStoreState = {
   setLanguage: (language: LANGUAGE) => void;
 };
 
-export const useAppStateStore = createZustandStorageHook<AppStateStoreState>(
-  (set) => ({
-    isActive: true,
-    language: LANGUAGE.EN,
-    setAppState: (appState) => {
-      set({isActive: appState === 'active'});
-    },
-    setLanguage: (language) => {
-      set({language});
-    }
-  }),
-  {storeType: STORAGE_TYPE.SESSION}
-);
+export const useAppStateStore = createZustandStorageHook<AppStateStoreState>((set) => ({
+  isActive: true,
+  language: LANGUAGE.EN,
+  setAppState: (appState) => {
+    set({isActive: appState === 'active'});
+  },
+  setLanguage: (language) => {
+    set({language});
+  }
+}));

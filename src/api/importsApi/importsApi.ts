@@ -1,11 +1,10 @@
+import {failure, failureForStatus} from '@/src/api/apiResult';
 import {fetchText, HttpAnswer, runTimedRequest} from '@/src/api/importsApi/httpRequest';
+import {readImportJob} from '@/src/api/importsApi/readImportJob';
 import {HTTP_STATUS} from '@/src/constants/HTTP_STATUS';
-import {IMPORT_STATUS} from '@/src/constants/IMPORT_STATUS';
 import {LIMITS} from '@/src/constants/LIMITS';
-import {ApiResult, ImportJob, RecurringItem} from '@/src/types/importApi';
-import {ERROR_KIND, resolveHttpStatusErrorKind} from '@/src/utils/errors/resolveErrorKind';
-import {CALENDAR_DATE_PATTERN} from '@/src/utils/format/formatDate';
-import {isRecord, parseJson} from '@/src/utils/json/parseJson';
+import {ApiResult, ImportJob} from '@/src/types/importApi';
+import {ERROR_KIND} from '@/src/utils/errors/resolveErrorKind';
 
 type FileUploadRequest = {
   url: string;
@@ -29,85 +28,8 @@ type CreateImportRequest = {
   signal?: AbortSignal;
 };
 
-const JOB_STATUSES: readonly string[] = Object.values(IMPORT_STATUS);
-
-const isRecurringItem = (value: unknown): value is RecurringItem => {
-  if (!isRecord(value)) {
-    return false;
-  }
-  return (
-    typeof value.id === 'string' &&
-    typeof value.merchant === 'string' &&
-    Number.isInteger(value.amountMinor) &&
-    typeof value.cadence === 'string' &&
-    typeof value.lastSeen === 'string' &&
-    CALENDAR_DATE_PATTERN.test(value.lastSeen)
-  );
-};
-
-const isJobStatus = (value: unknown): value is IMPORT_STATUS => {
-  return typeof value === 'string' && JOB_STATUSES.includes(value);
-};
-
-const isRevision = (value: unknown): value is number => {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 1;
-};
-
-const readItems = (value: Record<string, unknown>): RecurringItem[] | null => {
-  const {items} = value;
-  if (!Array.isArray(items) || !items.every(isRecurringItem)) {
-    return null;
-  }
-  return items;
-};
-
-const readCurrency = (value: Record<string, unknown>): string | null => {
-  const {currency} = value;
-  if (typeof currency !== 'string') {
-    return null;
-  }
-  return currency;
-};
-
-/** Reads a job from an answer body; anything that breaks the contract is unreadable (null). */
-export const readImportJob = (body: string): ImportJob | null => {
-  const value = parseJson(body);
-  if (!isRecord(value) || typeof value.jobId !== 'string') {
-    return null;
-  }
-  if (!isJobStatus(value.status) || !isRevision(value.revision)) {
-    return null;
-  }
-  const job: ImportJob = {
-    jobId: value.jobId,
-    status: value.status,
-    revision: value.revision,
-    currency: readCurrency(value),
-    items: null
-  };
-  if (job.status !== IMPORT_STATUS.READY) {
-    return job;
-  }
-  const items = readItems(value);
-  if (!items || job.currency === null) {
-    return null;
-  }
-  return {...job, items};
-};
-
-const failure = <T>(kind: ERROR_KIND, httpStatus: number | null): ApiResult<T> => ({
-  success: false,
-  error: {kind, httpStatus}
-});
-
-/** The expected status gives a job, 404 gives "not known" (null), any other status a failure. */
-const toJobResult = (answer: HttpAnswer, expectedStatus: number): ApiResult<ImportJob | null> => {
-  if (answer.status === HTTP_STATUS.NOT_FOUND) {
-    return {success: true, payload: null};
-  }
-  if (answer.status !== expectedStatus) {
-    return failure(resolveHttpStatusErrorKind(answer.status), answer.status);
-  }
+/** The job of an answer; a body that breaks the contract is a server fault. */
+const parseJobAnswer = (answer: HttpAnswer): ApiResult<ImportJob> => {
   const job = readImportJob(answer.body);
   if (!job) {
     return failure(ERROR_KIND.SERVER, answer.status);
@@ -118,13 +40,36 @@ const toJobResult = (answer: HttpAnswer, expectedStatus: number): ApiResult<Impo
 /** A 202 is the only success of a POST; it never means the report is ready. */
 const toCreatedJob = (answer: HttpAnswer): ApiResult<ImportJob> => {
   if (answer.status !== HTTP_STATUS.ACCEPTED) {
-    return failure(resolveHttpStatusErrorKind(answer.status), answer.status);
+    return failureForStatus(answer.status);
   }
-  const job = readImportJob(answer.body);
-  if (!job) {
-    return failure(ERROR_KIND.SERVER, answer.status);
+  return parseJobAnswer(answer);
+};
+
+/** The expected status gives a job, 404 gives "not known" (null), any other status a failure. */
+const toJobResult = (answer: HttpAnswer, expectedStatus: number): ApiResult<ImportJob | null> => {
+  if (answer.status === HTTP_STATUS.NOT_FOUND) {
+    return {success: true, payload: null};
   }
-  return {success: true, payload: job};
+  if (answer.status !== expectedStatus) {
+    return failureForStatus(answer.status);
+  }
+  return parseJobAnswer(answer);
+};
+
+/** One JSON request about a known job: the read by key, the read by id or the delete. */
+const requestJob = async (
+  url: string,
+  init: RequestInit,
+  expectedStatus: number
+): Promise<ApiResult<ImportJob | null>> => {
+  const result = await runTimedRequest(
+    (signal) => fetchText(url, init, signal),
+    LIMITS.REQUEST_TIMEOUT_MS
+  );
+  if (!result.success) {
+    return result;
+  }
+  return toJobResult(result.payload, expectedStatus);
 };
 
 /**
@@ -139,7 +84,7 @@ export const createImportsApi = ({
   uploadFile: FileUploader;
 }) => {
   const createImport = async (request: CreateImportRequest): Promise<ApiResult<ImportJob>> => {
-    const outcome = await runTimedRequest(
+    const result = await runTimedRequest(
       (signal) =>
         uploadFile({
           url: `${baseUrl}/imports`,
@@ -154,30 +99,15 @@ export const createImportsApi = ({
       LIMITS.UPLOAD_TIMEOUT_MS,
       request.signal
     );
-    if (!outcome.success) {
-      return failure(outcome.kind, null);
+    if (!result.success) {
+      return result;
     }
-    return toCreatedJob(outcome.answer);
-  };
-
-  const readJob = async (
-    url: string,
-    init: RequestInit,
-    expectedStatus: number
-  ): Promise<ApiResult<ImportJob | null>> => {
-    const outcome = await runTimedRequest(
-      (signal) => fetchText(url, init, signal),
-      LIMITS.REQUEST_TIMEOUT_MS
-    );
-    if (!outcome.success) {
-      return failure(outcome.kind, null);
-    }
-    return toJobResult(outcome.answer, expectedStatus);
+    return toCreatedJob(result.payload);
   };
 
   /** Null payload: the server does not know the key at this instant. */
   const getImportByKey = (idempotencyKey: string) =>
-    readJob(
+    requestJob(
       `${baseUrl}/imports/by-key/${encodeURIComponent(idempotencyKey)}`,
       {method: 'GET'},
       HTTP_STATUS.OK
@@ -185,11 +115,11 @@ export const createImportsApi = ({
 
   /** Null payload: the server does not know this job id. */
   const getImport = (jobId: string) =>
-    readJob(`${baseUrl}/imports/${encodeURIComponent(jobId)}`, {method: 'GET'}, HTTP_STATUS.OK);
+    requestJob(`${baseUrl}/imports/${encodeURIComponent(jobId)}`, {method: 'GET'}, HTTP_STATUS.OK);
 
   /** Null payload: the server does not know this job id. */
   const deleteImport = (jobId: string, deleteKey: string) =>
-    readJob(
+    requestJob(
       `${baseUrl}/imports/${encodeURIComponent(jobId)}`,
       {method: 'DELETE', headers: {'Idempotency-Key': deleteKey}},
       HTTP_STATUS.ACCEPTED

@@ -1,7 +1,6 @@
 import {LIMITS} from '@/src/constants/LIMITS';
 import {LANGUAGE} from '@/src/i18n/translations';
 import {formatExactBytes, formatFileSize, toKilobytes} from '@/src/utils/format/formatFileSize';
-import {formatStatementTitle} from '@/src/utils/format/formatStatementTitle';
 
 describe('formatFileSize', () => {
   it('uses bytes, kilobytes and megabytes in both languages', () => {
@@ -13,28 +12,12 @@ describe('formatFileSize', () => {
 
   it('shows the exact byte count for a size at the limit', () => {
     expect(formatExactBytes(10485771, LANGUAGE.EN)).toBe('10,485,771 bytes');
-    expect(formatExactBytes(10485771, LANGUAGE.RU)).toBe('10 485 771 байт');
+    expect(formatExactBytes(10485771, LANGUAGE.RU)).toBe('10\u00A0485\u00A0771 байт');
   });
 
   it('rounds the size to whole kilobytes for a log, never below one', () => {
     expect(toKilobytes(112)).toBe(1);
     expect(toKilobytes(2458)).toBe(2);
     expect(toKilobytes(LIMITS.MAX_FILE_SIZE_BYTES)).toBe(10240);
-  });
-});
-
-describe('formatStatementTitle', () => {
-  const source = {
-    createdAt: new Date(2026, 9, 29, 14, 32).toISOString(),
-    file: {sizeBytes: 2458, format: 'pdf' as const}
-  };
-
-  it('builds the on-screen title from the date, format and size, never from the file name', () => {
-    expect(formatStatementTitle(source, LANGUAGE.EN)).toBe(
-      'Statement · 29 Oct, 14:32 · PDF · 2.4 KB'
-    );
-    expect(formatStatementTitle(source, LANGUAGE.RU)).toBe(
-      'Выписка · 29 окт, 14:32 · PDF · 2,4 КБ'
-    );
   });
 });

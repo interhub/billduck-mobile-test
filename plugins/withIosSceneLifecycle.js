@@ -1,15 +1,5 @@
-const {withAppDelegate, withInfoPlist} = require('@expo/config-plugins');
+const {withAppDelegate, withInfoPlist} = require('expo/config-plugins');
 
-/**
- * iOS 27 stops an app at launch unless it adopts the scene-based life cycle. The `expo` package
- * of SDK 57 already ships the scene delegate (`EXExpoAppSceneDelegate`), but the SDK 57 app
- * template still creates the window and starts React Native from the app delegate. This plugin
- * hands both to the scene delegate:
- * - Info.plist declares one window scene served by `EXExpoAppSceneDelegate`;
- * - `AppDelegate` provides its React Native factory to that delegate and stops creating a window.
- * Idempotent: every change is checked before it is made. When the template no longer has the
- * expected code, the plugin fails the prebuild instead of producing an app that stops at launch.
- */
 const SCENE_DELEGATE_CLASS = 'EXExpoAppSceneDelegate';
 const PROVIDER_PROTOCOL = 'ExpoReactNativeFactoryProvider';
 const APP_DELEGATE_DECLARATION = 'class AppDelegate: ExpoAppDelegate {';
@@ -72,6 +62,16 @@ const withSceneAppDelegate = (config) => {
   });
 };
 
+/**
+ * iOS 27 stops an app at launch unless it adopts the scene-based life cycle. The `expo` package
+ * of SDK 57 already ships the scene delegate (`EXExpoAppSceneDelegate`), but the SDK 57 app
+ * template still creates the window and starts React Native from the app delegate. This plugin
+ * hands both to the scene delegate:
+ * - Info.plist declares one window scene served by `EXExpoAppSceneDelegate`;
+ * - `AppDelegate` provides its React Native factory to that delegate and stops creating a window.
+ * Idempotent: every change is checked before it is made. When the template no longer has the
+ * expected code, the plugin fails the prebuild instead of producing an app that stops at launch.
+ */
 const withIosSceneLifecycle = (config) => {
   return withSceneAppDelegate(withSceneManifest(config));
 };

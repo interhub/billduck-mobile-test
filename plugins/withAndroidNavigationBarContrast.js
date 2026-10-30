@@ -1,4 +1,4 @@
-const {withAndroidStyles, AndroidConfig} = require('@expo/config-plugins');
+const {withAndroidStyles, AndroidConfig} = require('expo/config-plugins');
 
 /**
  * With edge-to-edge enabled (target SDK 35 and above), Android 15 puts a light

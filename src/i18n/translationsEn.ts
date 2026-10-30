@@ -1,3 +1,8 @@
+import {BYTE_UNITS} from '@/src/constants/BYTE_UNITS';
+import {LIMITS} from '@/src/constants/LIMITS';
+
+const MAX_FILE_SIZE_MEGABYTES = LIMITS.MAX_FILE_SIZE_BYTES / BYTE_UNITS.MEGABYTE;
+
 const pickEnglishForm = (count: number, one: string, many: string): string => {
   if (count === 1) {
     return one;
@@ -22,6 +27,7 @@ export const TRANSLATIONS_EN = {
     megabytes: 'MB',
     months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     statementWord: 'Statement',
+    titleSeparator: ' · ',
     perMonth: (amount: string) => `${amount} / month`,
     exactBytes: (bytes: string) => `${bytes} bytes`
   },
@@ -69,7 +75,7 @@ export const TRANSLATIONS_EN = {
     nothingSent: 'Nothing was sent to the server.',
     rejection: {
       fake_pdf: "This file isn't a real PDF.",
-      too_large: 'This file is larger than 10 MB.',
+      too_large: `This file is larger than ${MAX_FILE_SIZE_MEGABYTES} MB.`,
       empty: 'This file is empty.',
       unsupported: 'Unsupported file.',
       unreadable: "This file can't be read."

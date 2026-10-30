@@ -9,6 +9,8 @@ module.exports = {
   testMatch: ['**/*.test.ts'],
   globalSetup: '<rootDir>/tests/integration/support/globalSetup.js',
   globalTeardown: '<rootDir>/tests/integration/support/globalTeardown.js',
+  // Every file shares the one mock process and its state: the files run one after another.
+  maxWorkers: 1,
   testTimeout: 60_000,
   silent: true,
   transform: {

@@ -3,17 +3,13 @@ import {StatementFile, StatementFormat} from '@/src/types/importOperation';
 import {formatLocalDateTime} from '@/src/utils/format/formatDate';
 import {formatFileSize} from '@/src/utils/format/formatFileSize';
 
-const FORMAT_LABEL: Record<StatementFormat, string> = {
-  pdf: 'PDF',
-  csv: 'CSV'
-};
-
 type TitleSource = {
   createdAt: string;
   file: StatementFile;
 };
 
-export const formatStatementFormat = (format: StatementFormat): string => FORMAT_LABEL[format];
+/** The format as the screen names it, the same in both languages: "PDF", "CSV". */
+export const formatStatementFormat = (format: StatementFormat): string => format.toUpperCase();
 
 /**
  * The on-screen name of a statement, built at render time in the current language and never
@@ -23,10 +19,11 @@ export const formatStatementTitle = (
   {createdAt, file}: TitleSource,
   language: LANGUAGE
 ): string => {
+  const {statementWord, titleSeparator} = TRANSLATIONS[language].format;
   return [
-    TRANSLATIONS[language].format.statementWord,
+    statementWord,
     formatLocalDateTime(createdAt, language),
-    FORMAT_LABEL[file.format],
+    formatStatementFormat(file.format),
     formatFileSize(file.sizeBytes, language)
-  ].join(' · ');
+  ].join(titleSeparator);
 };

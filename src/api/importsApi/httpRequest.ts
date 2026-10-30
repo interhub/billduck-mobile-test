@@ -1,3 +1,5 @@
+import {failure} from '@/src/api/apiResult';
+import {ApiResult} from '@/src/types/importApi';
 import {ERROR_KIND, resolveErrorKind} from '@/src/utils/errors/resolveErrorKind';
 
 /** A raw HTTP answer: its status and its body text. */
@@ -6,18 +8,16 @@ export type HttpAnswer = {
   body: string;
 };
 
-type HttpOutcome = {success: true; answer: HttpAnswer} | {success: false; kind: ERROR_KIND};
-
 /**
- * Runs one request under our own time limit. A request stopped by that limit is a TIMEOUT;
- * any other request without an answer is classified by `resolveErrorKind`. Never retries:
- * the wrapper cannot tell a read from a write.
+ * Runs one request under our own time limit and gives back its answer, whatever the status.
+ * A request stopped by that limit is a TIMEOUT; any other request without an answer is
+ * classified by `resolveErrorKind`. Never retries: the wrapper cannot tell a read from a write.
  */
 export const runTimedRequest = async (
   send: (signal: AbortSignal) => Promise<HttpAnswer>,
   timeoutMs: number,
   externalSignal?: AbortSignal
-): Promise<HttpOutcome> => {
+): Promise<ApiResult<HttpAnswer>> => {
   const controller = new AbortController();
   const timeout = {fired: false};
   const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
@@ -27,12 +27,12 @@ export const runTimedRequest = async (
   const abortFromOutside = () => controller.abort();
   externalSignal?.addEventListener('abort', abortFromOutside);
   try {
-    return {success: true, answer: await send(controller.signal)};
+    return {success: true, payload: await send(controller.signal)};
   } catch (error) {
     if (timeout.fired) {
-      return {success: false, kind: ERROR_KIND.TIMEOUT};
+      return failure(ERROR_KIND.TIMEOUT, null);
     }
-    return {success: false, kind: resolveErrorKind(error)};
+    return failure(resolveErrorKind(error), null);
   } finally {
     clearTimeout(timer);
     externalSignal?.removeEventListener('abort', abortFromOutside);

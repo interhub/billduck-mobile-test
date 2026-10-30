@@ -1,8 +1,9 @@
+import {failure, failureForStatus} from '@/src/api/apiResult';
 import {fetchText, runTimedRequest} from '@/src/api/importsApi/httpRequest';
 import {HTTP_STATUS} from '@/src/constants/HTTP_STATUS';
 import {LIMITS} from '@/src/constants/LIMITS';
 import {ApiResult} from '@/src/types/importApi';
-import {ERROR_KIND, resolveHttpStatusErrorKind} from '@/src/utils/errors/resolveErrorKind';
+import {ERROR_KIND} from '@/src/utils/errors/resolveErrorKind';
 import {isRecord, parseJson} from '@/src/utils/json/parseJson';
 
 /** Scenarios of the mock server, switched only from diagnostics and tests. */
@@ -83,65 +84,61 @@ const readMockState = (body: string): MockState | null => {
   return {mode: value.mode, stats: value.stats, jobs};
 };
 
+/** One call to a test route; any status but 200 is a failure of its kind. */
+const requestMock = async (
+  baseUrl: string,
+  path: string,
+  init: RequestInit
+): Promise<ApiResult<string>> => {
+  const result = await runTimedRequest(
+    (signal) => fetchText(`${baseUrl}${path}`, init, signal),
+    LIMITS.REQUEST_TIMEOUT_MS
+  );
+  if (!result.success) {
+    return result;
+  }
+  if (result.payload.status !== HTTP_STATUS.OK) {
+    return failureForStatus(result.payload.status);
+  }
+  return {success: true, payload: result.payload.body};
+};
+
+/** A test route that answered 200 did its work; its body carries nothing the app reads. */
+const toConfirmed = (result: ApiResult<string>): ApiResult<true> => {
+  if (!result.success) {
+    return result;
+  }
+  return {success: true, payload: true};
+};
+
 /** The mock's test routes. They exist for the reviewer and the tests, never for the import itself. */
 export const createMockControlApi = (baseUrl: string) => {
-  const request = async (path: string, init: RequestInit): Promise<ApiResult<string>> => {
-    const outcome = await runTimedRequest(
-      (signal) => fetchText(`${baseUrl}${path}`, init, signal),
-      LIMITS.REQUEST_TIMEOUT_MS
-    );
-    if (!outcome.success) {
-      return {success: false, error: {kind: outcome.kind, httpStatus: null}};
-    }
-    if (outcome.answer.status !== HTTP_STATUS.OK) {
-      const {status} = outcome.answer;
-      return {
-        success: false,
-        error: {kind: resolveHttpStatusErrorKind(status), httpStatus: status}
-      };
-    }
-    return {success: true, payload: outcome.answer.body};
-  };
-
-  const checkHealth = async (): Promise<ApiResult<true>> => {
-    const result = await request('/health', {method: 'GET'});
-    if (!result.success) {
-      return result;
-    }
-    return {success: true, payload: true};
-  };
+  const checkHealth = async (): Promise<ApiResult<true>> =>
+    toConfirmed(await requestMock(baseUrl, '/health', {method: 'GET'}));
 
   const getState = async (): Promise<ApiResult<MockState>> => {
-    const result = await request('/__test/state', {method: 'GET'});
+    const result = await requestMock(baseUrl, '/__test/state', {method: 'GET'});
     if (!result.success) {
       return result;
     }
     const state = readMockState(result.payload);
     if (!state) {
-      return {success: false, error: {kind: ERROR_KIND.SERVER, httpStatus: HTTP_STATUS.OK}};
+      return failure(ERROR_KIND.SERVER, HTTP_STATUS.OK);
     }
     return {success: true, payload: state};
   };
 
-  const setScenario = async (mode: MOCK_SCENARIO): Promise<ApiResult<true>> => {
-    const result = await request('/__test/scenario', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({mode})
-    });
-    if (!result.success) {
-      return result;
-    }
-    return {success: true, payload: true};
-  };
+  const setScenario = async (mode: MOCK_SCENARIO): Promise<ApiResult<true>> =>
+    toConfirmed(
+      await requestMock(baseUrl, '/__test/scenario', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({mode})
+      })
+    );
 
-  const reset = async (): Promise<ApiResult<true>> => {
-    const result = await request('/__test/reset', {method: 'POST'});
-    if (!result.success) {
-      return result;
-    }
-    return {success: true, payload: true};
-  };
+  const reset = async (): Promise<ApiResult<true>> =>
+    toConfirmed(await requestMock(baseUrl, '/__test/reset', {method: 'POST'}));
 
   return {checkHealth, getState, setScenario, reset};
 };
