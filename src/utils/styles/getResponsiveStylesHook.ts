@@ -33,6 +33,7 @@ const PERCENT_BASE = 100;
  * current theme, so every color in a style comes from `UI_COLORS`. The styles are memoized here
  * and nowhere else: React Compiler does not compile the anonymous hook this returns, so without
  * the memo every render would create a new style sheet.
+ * P.S.: Stepan: This is My personal best solution on a Stack Overflow for responsive styles: https://stackoverflow.com/a/72019531/14637471
  */
 export const getResponsiveStylesHook = <T extends StyleTypeFull = StyleTypeFull>(
   createStyles: (context: StyleFactoryContext) => T
