@@ -12,7 +12,7 @@ paths:
 ## Packages And Versions
 - Expo SDK 57 with React Native 0.86, the New Architecture and Hermes. Every version is exactly the one Expo recommends: add packages only with `npx expo install <pkg>`, then `npx expo install --check` and `npx expo-doctor` must report nothing. Never take a version newer than recommended: the reviewer builds the project on their own machine.
 - npm is the only package manager; `package-lock.json` is committed. Node 22 (`.nvmrc`).
-- The stack: `expo`, `react-native`, `react`; `typescript` with `@typescript/native-preview` (`tsgo`); `@react-navigation/native` and `@react-navigation/native-stack` with `react-native-screens` and `react-native-safe-area-context`; `zustand`; `@react-native-async-storage/async-storage`; `expo-file-system`, `expo-document-picker`, `expo-crypto`, `expo-localization`, `expo-font`, `expo-splash-screen`, `expo-image`, `expo-status-bar`, `expo-system-ui`; `react-native-svg` with `phosphor-react-native`; `jest`, `jest-expo` and `@testing-library/react-native` for tests; `eslint` 9 with `eslint-config-expo` and `prettier`.
+- The stack: `expo`, `react-native`, `react`; `typescript` with `@typescript/native-preview` (`tsgo`); `@react-navigation/native` and `@react-navigation/native-stack` with `react-native-screens` and `react-native-safe-area-context`; `zustand`; `@react-native-async-storage/async-storage`; `expo-file-system`, `expo-document-picker`, `expo-crypto`, `expo-localization`, `expo-font`, `expo-splash-screen`, `expo-image`, `expo-status-bar`, `expo-system-ui`; `react-native-svg` with `phosphor-react-native`; `jest`, `jest-expo`, `@testing-library/react-native` and its peer `test-renderer` for tests, with `@types/jest` and `@types/react`; `eslint` 9 with `eslint-config-expo`, `eslint-config-prettier` and `globals`, and `prettier`.
 - Never add what the app does not need: React Query, i18next (the app has its own small translation module), Sentry, Amplitude, any analytics SDK. Never install `react-native-reanimated` or `react-native-gesture-handler`: animations use the built-in `Animated` with `useNativeDriver: true`, which keeps native modules and build risks for the reviewer down.
 
 ## Generated Native Folders
@@ -28,6 +28,9 @@ paths:
 - Phones only, portrait only: `orientation: 'portrait'`, `ios.supportsTablet: false`. Never lock or unlock orientation at runtime and never install `expo-screen-orientation`.
 - `userInterfaceStyle: 'automatic'` (light and dark themes; on Android this needs `expo-system-ui`), the New Architecture (always on in SDK 57; the config has no `newArchEnabled` key), Hermes (the default), `experiments.reactCompiler: true`.
 - Never set `edgeToEdgeEnabled`: prebuild no longer supports the key, and Android 16 turns edge-to-edge on by itself.
+- `android.predictiveBackGestureEnabled: false`: the app does not use the predictive back animation.
+- The `expo-localization` plugin lists `supportedLocales` `en` and `ru` for iOS and Android, so the system offers exactly the two app languages.
+- The config is the default export of `app.config.ts`, the one default export of the project (ESLint `import/no-default-export` is off for this file alone). The plugins sit in the `PLUGINS` constant: `expo-splash-screen`, `expo-localization` and the five own plugins.
 - Keep the Expo defaults for the iOS deployment target (16.4 in SDK 57, never lower) and for the Podfile.
 - Backups: `android.allowBackup: false`. On iOS nothing reaches a backup: the file copies live in `Caches`, which iOS never backs up, and AsyncStorage marks its own folder as excluded from backups by default (`RCTAsyncStorageExcludeFromBackup` stays unset).
 
@@ -42,6 +45,8 @@ paths:
 - After prebuild, read `android/app/src/main/AndroidManifest.xml`: every blocked permission carries `tools:node="remove"`. After a build, check the merged manifest under `android/app/build/intermediates/merged_manifests/`.
 
 ## Plugins In plugins/
+- Every plugin is a CommonJS file that takes its helpers from `expo/config-plugins`, never from `@expo/config-plugins` (`package.json` does not list it), and exports itself with `module.exports`.
+- A plugin changes the config it receives in place (`nextConfig.modResults`) and returns it, as the config plugin API expects; ESLint turns `no-param-reassign` off for `plugins/` alone. When the native template no longer has the code a plugin expects, the plugin throws and stops the prebuild (`withIosSceneLifecycle.js`) instead of producing a broken app.
 - `withIosSceneLifecycle.js`: declares the UIScene lifecycle with Expo's scene delegate; without it iOS 27 stops the app at launch.
 - `withLocalCleartextTraffic.js`: local-only HTTP on Android (above).
 - `withAndroidNavigationBarContrast.js`: sets `android:enforceNavigationBarContrast` to `false`, so Android 15 in edge-to-edge does not cover the navigation bar with a light scrim.
@@ -50,28 +55,52 @@ paths:
 
 ## Icons
 - iOS: `assets/images/icon.png`, 1024x1024, no transparency, no own rounded corners (the system rounds them): the glossy 3D duck holding a receipt on graphite `#1A1814`.
-- Android: `assets/images/adaptive-icon-foreground.png`, 1024x1024 on transparency, the whole duck inside the central circle of about 60% of the canvas (the safe zone is a 66 dp circle of 108 dp), plus `android.adaptiveIcon.backgroundColor: '#1A1814'`. Never use a full square as the foreground: launcher masks cut it.
+- Android: `assets/images/adaptive-icon-foreground.png`, 1024x1024 on transparency, the whole duck inside the central circle of about 60% of the canvas (the safe zone is a 66 dp circle of 108 dp), plus `android.adaptiveIcon.backgroundColor: GRAPHITE` (`'#1A1814'`, a constant at the top of `app.config.ts`). Never use a full square as the foreground: launcher masks cut it.
 - After prebuild check: `ios/BillDuck/Images.xcassets/AppIcon.appiconset/` holds a 1024 PNG without alpha (`sips -g hasAlpha <file>` prints `hasAlpha: no`); every `android/app/src/main/res/mipmap-*dpi/` holds `ic_launcher_foreground`, and `mipmap-anydpi-v26/ic_launcher.xml` exists.
 
 ## Splash
-- Only the `expo-splash-screen` plugin; never the outdated `splash` or `android.splash` keys.
+- Only the `expo-splash-screen` plugin; never the outdated `splash` or `android.splash` keys. The whole plugin list of `app.config.ts`:
 
 ```ts
-['expo-splash-screen', {
-  backgroundColor: '#1A1814',
-  image: './assets/images/splash-icon.png',
-  imageWidth: 144,
-  resizeMode: 'contain',
-  ios: {backgroundColor: '#1A1814', image: './assets/images/splash-icon.png', imageWidth: 128, resizeMode: 'contain'},
-}],
+const PLUGINS: ExpoConfig['plugins'] = [
+  [
+    'expo-splash-screen',
+    {
+      backgroundColor: GRAPHITE,
+      image: './assets/images/splash-icon.png',
+      imageWidth: 144,
+      resizeMode: 'contain',
+      ios: {
+        backgroundColor: GRAPHITE,
+        image: './assets/images/splash-icon.png',
+        imageWidth: 128,
+        resizeMode: 'contain'
+      }
+    }
+  ],
+  [
+    'expo-localization',
+    {
+      supportedLocales: {
+        ios: ['en', 'ru'],
+        android: ['en', 'ru']
+      }
+    }
+  ],
+  './plugins/withIosSceneLifecycle.js',
+  './plugins/withLocalCleartextTraffic.js',
+  './plugins/withAndroidNavigationBarContrast.js',
+  './plugins/withMainActivityConfigChanges.js',
+  './plugins/withAndroidGradleMemory.js'
+];
 ```
 
 - `splash-icon.png`: the duck with the receipt on transparency, a 1024 square, no text. Never a full-screen picture: it is heavy and stretches.
 - Android shows the splash through the AndroidX `Theme.SplashScreen` that prebuild generates; `SplashScreenManager.registerOnActivity(this)` in `MainActivity.kt` stays as generated.
-- In `App.tsx`: `SplashScreen.preventAutoHideAsync()` at module level; `SplashScreen.hideAsync()` after the fonts are loaded, the language is chosen and the stored import operation is read (`src/hooks/useInitialAppLoading.ts`).
+- In `App.tsx`, at module level: `SplashScreen.preventAutoHideAsync()`, then the language from the system. `useInitialAppLoading` (`src/hooks/useInitialAppLoading.ts`) calls `SplashScreen.hideAsync()` once the fonts are loaded (or failed to load) and the stored import operation is read, then lets the controller resume that operation.
 
 ## Fonts
-- `Unbounded-SemiBold.ttf`, `Geist-Regular.ttf`, `Geist-Medium.ttf`, `GeistMono-Regular.ttf`, `GeistMono-Medium.ttf` and their OFL licenses in `assets/fonts/`, loaded at runtime with `useFonts({[FONT_NAME.X]: require(...)})`, so `fontFamily` is the same on iOS and Android.
+- `Unbounded-SemiBold.ttf`, `Geist-Regular.ttf`, `Geist-Medium.ttf`, `GeistMono-Regular.ttf`, `GeistMono-Medium.ttf` and their OFL licenses in `assets/fonts/`, loaded at runtime with `useFonts(FONT_FILES)` in `useInitialAppLoading.ts` (each `FONT_NAME` member mapped to its `require('@/assets/fonts/...')`), so `fontFamily` is the same on iOS and Android.
 - Never embed fonts through the `expo-font` config plugin: the family names then differ per platform.
 - Check that all three families contain Cyrillic. A family without it is replaced for Russian by the nearest brand font, never by the system font.
 

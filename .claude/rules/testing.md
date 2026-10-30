@@ -2,7 +2,7 @@
 paths:
   - "**/__tests__/**"
   - "tests/**"
-  - "jest*.config.*"
+  - "jest.*.js"
   - "mobile-engineer-candidate-kit/**"
 ---
 
@@ -10,26 +10,37 @@ paths:
 
 ## Tools And Commands
 - `jest` with the `jest-expo` preset and `@testing-library/react-native`, in the versions Expo SDK 57 recommends (`npx expo install`).
-- npm scripts in `package.json`: `npm test` (unit), `npm run test:integration`, `npm run typecheck` (`tsgo --noEmit`), `npm run lint`, `npm run mock` (the server from `mobile-engineer-candidate-kit/` on `127.0.0.1:8787` for simulators and emulators), `npm run check` (all of them at once).
-- Unit and integration runs use separate Jest configs, so `npm test` never needs the mock.
+- npm scripts in `package.json`: `npm test` (unit), `npm run test:integration`, `npm run typecheck` (`tsgo --noEmit`), `npm run lint` (ESLint, then `prettier --check`), `npm run mock` (the server from `mobile-engineer-candidate-kit/` on `127.0.0.1:8787` for simulators and emulators), `npm run check` (typecheck, lint, unit and integration tests, one after another).
+- Unit and integration runs use separate Jest configs, so `npm test` never needs the mock: `jest.config.js` (preset `jest-expo`, `__tests__/**/*.test.ts(x)` under `src/`) and `jest.integration.config.js` (preset `jest-expo/node`, `*.test.ts` under `tests/integration/`).
 - A change is done only when `npm run check` is green: `test`, `test:integration`, `typecheck` and `lint`.
-- The output of every full run is saved to `docs/test-results/` as a text file with the date, the command and the result; the folder ships in the archive.
+- `scripts/save-test-results.sh` runs every check and the kit's own tests and saves each output to `docs/test-results/<name>.txt` with the date, the command and the exit code; the folder ships in the archive.
 - `mobile-engineer-candidate-kit/` is a byte-for-byte copy of the kit: never edit its server, tests or fixtures. `diff -r` against the original kit is empty; the only files that may appear later are the ones the kit's own `.gitignore` lists (`fixtures/oversize.csv`, `.mock-state.json`). `npm test` inside the kit checks the mock itself.
 
 ## Unit Tests
-- Live in `__tests__/` next to the code: `src/utils/import/__tests__/importReducer.test.ts`.
-- No network and no native modules. Native imports (`expo-file-system`, `expo-crypto`, `expo-document-picker`, `expo-localization`) sit in thin adapter files; the controller and the API client receive the uploader, file reader, temp file store, clock and key generator as parameters, so tests pass fakes.
-- AsyncStorage comes from its official Jest mock (`@react-native-async-storage/async-storage/jest/async-storage-mock`).
+- Live in `__tests__/` next to the code: `<module>.test.ts`, `.tsx` when the test renders JSX, `<module>.<topic>.test.ts` when one module has several test files (`src/utils/import/__tests__/importReducer.upload.test.ts`, `importReducer.jobAnswers.test.ts`, `importReducer.deletion.test.ts`). Only `*.test.ts(x)` files run.
+- No network and no native modules. Native imports (`expo-file-system`, `expo-crypto`, `expo-document-picker`, `expo-localization`) sit in thin adapter files (`statementFileStore.ts`, `nativeFileUploader.ts`, `importController.ts`, `resolveSystemLanguage.ts`). `createImportController` receives the API client, the repository, the file store, the app activity, the clock (`now`), the key generator (`createUuid`) and `wait`, and `createImportsApi` receives its uploader, so tests pass fakes.
+- `jest.setup.js` swaps in the official Jest mocks of AsyncStorage (`@react-native-async-storage/async-storage/jest/async-storage-mock`) and `react-native-safe-area-context`.
+- Unit tests run in the `America/Los_Angeles` time zone (`jest.globalSetup.js`, set before the workers start): there a calendar date read as UTC midnight falls on the previous day, so such a bug fails a test.
 - Cover the pure parts first: the phase reducer, the revision guard and the binding of answers to the operation, the size and signature checks (with bytes from `mobile-engineer-candidate-kit/fixtures/`), the generated names, money, date and file size formatting.
 - Components: query by role, label or testID, never by style or tree position.
 
+## Unit Test Helpers
+- A helper has no `.test` in its name and sits in the `__tests__/` folder of the tests that use it. Reuse these before writing a fixture of your own:
+  - `src/services/importController/__tests__/`: `controllerHarness.ts` (`launchController`, `crashAndRelaunch`, `resetWorld`, `advance` of the fake clock), `controllerWaits.ts` (every wait of a controller test, named from `LIMITS` and the stages of the fake server), `fakeImportBackend.ts` (an in-memory mock with the kit's rules plus switches the real mock lacks, built from `fakeServer.ts`, `fakeImportsApi.ts` and `fakeStatementFiles.ts`), `importScenarios.ts` (`queuedImport`, `readyImport`).
+  - `src/utils/import/__tests__/importFixtures.ts`: `buildTestOperation`, `buildOperationWithJob`, `buildTestJob`, `READY_PAYMENTS`.
+  - `src/utils/files/__tests__/kitFixtures.ts`: `readFixture`, the bytes of a kit fixture.
+  - `src/api/importsApi/__tests__/mockReadyReport.ts`: `MOCK_READY_ITEMS`, `MOCK_READY_CURRENCY`, `MOCK_READY_BODY`, the ready report of the kit's mock.
+
 ## Integration Tests
 - Live in `tests/integration/` and drive the API client and the import controller through Node `fetch` against the real mock.
-- Start the mock in Jest `globalSetup` as a separate `node` process, never by importing `mock-server.mjs` into Jest: it is an ES module and the import breaks there. A launcher script in `tests/integration/` calls `createMockServer({statePath})` with a temp state file, listens on port 0 and prints the port; `globalSetup` waits for it and puts the base URL into an env variable; `globalTeardown` stops the process and deletes the temp folder.
+- Start the mock in Jest `globalSetup` as a separate `node` process, never by importing `mock-server.mjs` into Jest: it is an ES module and the import breaks there. The launcher `tests/integration/support/startMock.mjs` calls `createMockServer({statePath})` with a temp state file, listens on port 0 of `127.0.0.1` and prints the port; `globalSetup.js` waits for it and puts the base URL into `MOCK_BASE_URL`; `globalTeardown.js` stops the process and deletes the temp folder.
+- `startMock.mjs` runs in plain Node without the alias, so it imports the kit by a relative path: the one file ESLint lets do that.
+- The Node phone lives in `tests/integration/support/`: `importTestEnvironment.ts` (`createPhone`, `disposePhones`, `relaunch`, `startScenario`, `resetMock`, `switchScenario`, `readMockState`, `readCounters`, `waitForImport`, `waitForPhase`), `nodeNetwork.ts` (`installRequestRecorder`, `network`, `createNodeImportsApi`) and `nodeFileStore.ts` (the in-memory AsyncStorage and the private folder of a phone).
 - The native upload is replaced by a Node uploader that sends the same bytes with the same headers (`Content-Type`, `Idempotency-Key`, `X-File-Name`).
-- Every request the client sends goes through a recorder, so tests can check it against the contract.
-- Every test starts with `POST /__test/reset`, then sets its scenario with `POST /__test/scenario`.
-- Run with `--runInBand`: all files share one mock process with its own port and state file.
+- Every request the client sends goes through a recorder (`installRequestRecorder()` at the top of each test file), so tests can check it against the contract.
+- Every test starts with `startScenario(scenario)`: it clears the recorder and the shared store, resets the mock with `POST /__test/reset`, then sets its scenario with `POST /__test/scenario`.
+- A test that needs a phone makes its own with `createPhone()`, never a shared one; `afterEach(disposePhones)` stops their processes and deletes their folders, and `relaunch(phone, crashed)` is a crash and a relaunch on the same phone.
+- The files run one after another: all of them share one mock process with its own port and state file, so `jest.integration.config.js` sets `maxWorkers: 1` (`npm run test:integration` also passes `--runInBand`).
 - Assert the server side through `GET /__test/state` counters (`createRequests`, `newJobs`, `duplicateHits`, `acceptedBytes`, `deleteRequests`), not only through client state.
 - `oversize.csv` is ignored by the kit's own `.gitignore`: `globalSetup` creates it with the kit's `npm run fixtures:oversize`, run inside `mobile-engineer-candidate-kit/`.
 
@@ -67,7 +78,7 @@ paths:
 | 19 | The largest font, the smallest screen, the dark theme, Reduce Motion | The main actions stay reachable, animations are off | QA |
 
 ## Deterministic Tests
-- Unit tests never wait on real time: Jest fake timers for polling, recovery and backoff, injected `now()` and key generator.
-- Integration tests never sleep for a fixed time: poll the controller state with a deadline (for example 5 s) until the expected phase.
+- Unit tests never wait on real time: Jest fake timers for polling, recovery and backoff, injected `now()` and key generator. A controller test moves the clock only by a named wait from `controllerWaits.ts` (`advance(ONE_POLL_MS)`), never by a bare number (`advance(0)` aside).
+- Integration tests never sleep for a fixed time: `waitForImport` and `waitForPhase` poll the controller state every 50 ms until the expected state, and fail with the last one after 15 s.
 - Every test owns its state: reset first, no dependence on test order, no variables shared between tests.
-- Never commit `.only` or `.skip`. A flaky test is fixed, never retried.
+- Never commit `.only` or `.skip` (ESLint). A flaky test is fixed, never retried.

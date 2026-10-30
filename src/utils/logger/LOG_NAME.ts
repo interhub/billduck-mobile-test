@@ -12,7 +12,8 @@ export enum LOG_NAME {
 export enum LOG_TYPE {
   // Every POST of a statement, the first one and every repeat with the same key
   create_import = 'create_import',
-  // Lookup of a job by its idempotency key after a lost answer
+  // Lookup of a job by its idempotency key: after a lost answer, after a restart, and before a
+  // status read or a DELETE of a job this launch has not checked yet
   recover_by_key = 'recover_by_key',
   // Status read of a known job
   poll_job = 'poll_job',

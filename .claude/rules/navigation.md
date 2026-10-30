@@ -9,7 +9,7 @@ paths:
 
 ## Structure
 - One root native stack, `createNativeStackNavigator<RootStackParamList>()` in `src/navigation/RootNavigator.tsx` (React Navigation 7). No tabs, no drawer, no nested navigators.
-- `headerShown: false` for every screen; each screen draws its own header inside `ScreenLayout`.
+- `headerShown: false` for every screen; each screen draws its own header inside `ScreenLayout`. Under Reduce Motion the stack changes screens without a transition (`animation: 'none'`).
 - `NavigationContainer` lives in `App.tsx` with `ref={navRef}`.
 
 | File | Owns |
@@ -23,12 +23,12 @@ paths:
 
 | `SCREEN_NAME` | Component and folder | Params | Shows |
 |---|---|---|---|
-| `HOME` | `HomeScreen` in `src/screens/Home/` | none | The `BillDuck` header with the slogan ("Where does my money go?" / "Куда уходят мои деньги?"); the empty state with its picture, or the card of the current import (generated title, status); "Add statement", disabled with the caption "Finish or cancel the current upload first" while an operation is in progress; the `PendingCleanup` line while a cleanup runs; the link to `DIAGNOSTICS` at the bottom |
-| `IMPORT_CONFIRM` | `ImportConfirmScreen` in `src/screens/Import/` | none | The original file name (only here, only in memory), size, format and the generated title it will be stored under; when a previous statement exists, the honest line "The current statement will be deleted from the server before the new one is sent"; "Send" and "Cancel" |
-| `IMPORT_STATUS` | `ImportStatusScreen` in `src/screens/Import/` | none | A large honest status (Queued, Processing, Reconnecting…, Server unavailable, The file didn't reach the server, Error) with `ResponseTimeline` under it and the actions of the current phase ("Retry", "Send again", the quiet "Cancel upload", the quiet "Cancel" while queued or processing); pull to refresh reads the status again |
+| `HOME` | `HomeScreen` in `src/screens/Home/` | none | The `BillDuck` header with the slogan ("Where does my money go?" / "Куда уходят мои деньги?"); the empty state with its picture, or the card of the current import (generated title, status, the monthly total once ready); the line about how the last import ended; the `PendingCleanup` line with "Retry" while a cleanup waits; "Add statement", disabled with the caption "Finish or cancel the current upload first" while an operation is in progress; the link to `DIAGNOSTICS` at the bottom |
+| `IMPORT_CONFIRM` | `ImportConfirmScreen` in `src/screens/Import/` | none | The original file name (only here, only in memory), size, format and the generated title it will be stored under; when a previous statement exists, the honest line "The current statement will be deleted from the server before the new one is sent"; "Send" and "Cancel". While the file is checked, the check with its picture; a refused file shows why, with "Choose another file" and "Cancel" |
+| `IMPORT_STATUS` | `ImportStatusScreen` in `src/screens/Import/` | none | A large honest status (Queued, Processing, Reconnecting…, Server unavailable, The file didn't reach the server, Error) with `ResponseTimeline` under it, the monthly total once ready, and the actions of the current phase ("Retry", "Send again", "Open report", "Choose the file again" or "Choose another file", "Back to the main screen", the quiet "Cancel upload", the quiet "Cancel" while queued or processing); pull to refresh reads the status again |
 | `IMPORT_RESULT` | `ImportResultScreen` in `src/screens/Import/` | none | The recurring payments, the monthly total, "Details" on each payment, "Delete import"; pull to refresh reads the status again |
 | `PAYMENT_DETAILS` | `PaymentDetailsScreen` in `src/screens/Import/` | `{paymentId: string}` | Merchant, amount, cadence, date of the last charge; no subscription cancel |
-| `DIAGNOSTICS` | `DiagnosticsScreen` in `src/screens/Diagnostics/` | none | The API address and its `/health`, the mock scenario switch, the `/__test/state` counters, the event journal (answers with revisions, skipped stale answers, repeats, errors), "Reset all" (resets both the mock and the local operation) |
+| `DIAGNOSTICS` | `DiagnosticsScreen` in `src/screens/Diagnostics/` | none | The API address and its `/health`, the mock scenario switch, the `/__test/state` counters and jobs, what the phone stores, the event journal (answers with revisions, skipped stale answers, repeats, errors), "Refresh" and pull to refresh (read the mock again), "Reset all" (resets both the mock and the local operation) |
 
 - `HOME` is the initial route. The link to `DIAGNOSTICS` at the bottom of `HOME` renders in every build of this test app, the ready-made release builds for the reviewer included; never hide it behind `__DEV__`. A production app would remove the screen with a build flag.
 - Screen components are named exports: `export const HomeScreen = () => {...};`.
@@ -42,7 +42,7 @@ export enum SCREEN_NAME {
   IMPORT_STATUS = 'IMPORT_STATUS',
   IMPORT_RESULT = 'IMPORT_RESULT',
   PAYMENT_DETAILS = 'PAYMENT_DETAILS',
-  DIAGNOSTICS = 'DIAGNOSTICS',
+  DIAGNOSTICS = 'DIAGNOSTICS'
 }
 
 export type RootStackParamList = {
@@ -61,7 +61,7 @@ export type AppNavigation = NativeStackNavigationProp<RootStackParamList>;
 - Always use `SCREEN_NAME` members, never route-name strings.
 
 ## Navigating
-- In components: `const navigation = useAppNavigation();`. The hook returns the navigation object itself (`useNavigation<AppNavigation>()` inside). Never call `useNavigation` directly.
+- In components: `const navigation = useAppNavigation();`. The hook returns the navigation object itself (`useNavigation<AppNavigation>()` inside). Never call `useNavigation` directly: ESLint rejects its import in other files (Machine Checks in `rn-code-styles.md`).
 - Read params with `useRoute<RouteProp<RootStackParamList, SCREEN_NAME.PAYMENT_DETAILS>>()`.
 - Outside React use `navRef` (`createNavigationContainerRef<RootStackParamList>()`), and only after `navRef.isReady()`. Never keep a navigation object in a module or a store.
 - In React Navigation 7, `navigate` to a screen that is already lower in the stack pushes a new copy. Go back to it with `navigation.popTo(SCREEN_NAME.HOME)` or `navigation.goBack()`.
