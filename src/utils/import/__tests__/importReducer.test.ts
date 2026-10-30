@@ -209,6 +209,48 @@ describe('importReducer: deletion', () => {
     expect(operation.phase).toBe('deleting');
   });
 
+  it('never brings the report back once a deletion was asked for, even from a silent server', () => {
+    const silent = buildOperation({
+      phase: 'server_unavailable',
+      jobId: 'job-demo-001',
+      revision: 3,
+      serverStatus: IMPORT_STATUS.READY,
+      deleteKey: 'delete-key-0001'
+    });
+    const answered = importReducer(silent, {
+      type: 'job_answer',
+      job: buildJob(IMPORT_STATUS.READY, 3),
+      hasItems: false
+    });
+    expect(answered.operation.phase).toBe('delete_failed');
+    const stillSilent = importReducer(silent, {
+      type: 'job_answer',
+      job: buildJob(IMPORT_STATUS.READY, 3),
+      hasItems: true
+    });
+    expect(stillSilent.operation.phase).toBe('delete_failed');
+  });
+
+  it('deletes a failed import that already has a job, and only such a failed import', () => {
+    const failedWithJob = buildOperation({
+      phase: 'failed',
+      jobId: 'job-demo-001',
+      revision: 1,
+      serverStatus: IMPORT_STATUS.QUEUED,
+      failure: {reason: 'server_rejected', httpStatus: 403}
+    });
+    expect(
+      importReducer(failedWithJob, {type: 'delete_requested', deleteKey: 'k'}).operation.phase
+    ).toBe('deleting');
+    const failedUpload = buildOperation({
+      phase: 'failed',
+      failure: {reason: 'server_rejected', httpStatus: 415}
+    });
+    expect(importReducer(failedUpload, {type: 'delete_requested', deleteKey: 'k'}).accepted).toBe(
+      false
+    );
+  });
+
   it('marks a 404 for the job id as gone on the server, not as deleted', () => {
     const {operation} = importReducer(withJob('ready', IMPORT_STATUS.READY, 3), {
       type: 'gone_on_server'

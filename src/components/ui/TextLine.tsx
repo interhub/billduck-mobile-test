@@ -33,7 +33,7 @@ type WordFit = {
 };
 
 /** A line may end after a space, a dash, a dot separator or a slash; anywhere else a word broke. */
-const BREAK_ALLOWED_AFTER = /[\s\-‐–—·/]$/u;
+const BREAK_ALLOWED_AFTER = /[\s\-\u2010\u2013\u2014·/]$/u;
 const WORD_FIT_STEP = 0.85;
 
 const resolveDefaultColor = (variant: TextLineVariant): keyof ThemeColors => {

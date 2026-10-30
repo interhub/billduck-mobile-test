@@ -66,7 +66,14 @@ export const useMockDiagnostics = (): MockDiagnostics => {
   const switchScenario = async (scenario: MOCK_SCENARIO) => {
     setIsBusy(true);
     try {
-      await mockControlApi.setScenario(scenario);
+      const switched = await mockControlApi.setScenario(scenario);
+      if (!switched.success) {
+        logger.w(LOG_NAME.warning_log, {
+          type: LOG_TYPE.mock_control,
+          error_kind: switched.error.kind,
+          http_status: switched.error.httpStatus
+        });
+      }
       await refresh();
     } finally {
       setIsBusy(false);
@@ -75,7 +82,17 @@ export const useMockDiagnostics = (): MockDiagnostics => {
   const resetAll = async () => {
     setIsBusy(true);
     try {
-      await mockControlApi.reset();
+      const reset = await mockControlApi.reset();
+      // The phone forgets its import only once the mock has forgotten it too.
+      if (!reset.success) {
+        logger.w(LOG_NAME.warning_log, {
+          type: LOG_TYPE.mock_control,
+          error_kind: reset.error.kind,
+          http_status: reset.error.httpStatus
+        });
+        await refresh();
+        return;
+      }
       await importController.forgetEverything();
       await refresh();
     } finally {

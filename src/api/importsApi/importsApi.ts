@@ -1,4 +1,5 @@
 import {fetchText, HttpAnswer, runTimedRequest} from '@/src/api/importsApi/httpRequest';
+import {HTTP_STATUS} from '@/src/constants/HTTP_STATUS';
 import {IMPORT_STATUS} from '@/src/constants/IMPORT_STATUS';
 import {LIMITS} from '@/src/constants/LIMITS';
 import {ApiResult, ImportJob, RecurringItem} from '@/src/types/importApi';
@@ -26,9 +27,6 @@ export type CreateImportRequest = {
   signal?: AbortSignal;
 };
 
-const HTTP_OK = 200;
-const HTTP_ACCEPTED = 202;
-const HTTP_NOT_FOUND = 404;
 const JOB_STATUSES: readonly string[] = Object.values(IMPORT_STATUS);
 const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -115,7 +113,7 @@ const failure = <T>(kind: ERROR_KIND, httpStatus: number | null): ApiResult<T> =
 
 /** The expected status gives a job, 404 gives "not known" (null), any other status a failure. */
 const toJobResult = (answer: HttpAnswer, expectedStatus: number): ApiResult<ImportJob | null> => {
-  if (answer.status === HTTP_NOT_FOUND) {
+  if (answer.status === HTTP_STATUS.NOT_FOUND) {
     return {success: true, payload: null};
   }
   if (answer.status !== expectedStatus) {
@@ -130,7 +128,7 @@ const toJobResult = (answer: HttpAnswer, expectedStatus: number): ApiResult<Impo
 
 /** A 202 is the only success of a POST; it never means the report is ready. */
 const toCreatedJob = (answer: HttpAnswer): ApiResult<ImportJob> => {
-  if (answer.status !== HTTP_ACCEPTED) {
+  if (answer.status !== HTTP_STATUS.ACCEPTED) {
     return failure(resolveHttpStatusErrorKind(answer.status), answer.status);
   }
   const job = readImportJob(answer.body);
@@ -193,19 +191,19 @@ export const createImportsApi = ({
     readJob(
       `${baseUrl}/imports/by-key/${encodeURIComponent(idempotencyKey)}`,
       {method: 'GET'},
-      HTTP_OK
+      HTTP_STATUS.OK
     );
 
   /** Null payload: the server does not know this job id. */
   const getImport = (jobId: string) =>
-    readJob(`${baseUrl}/imports/${encodeURIComponent(jobId)}`, {method: 'GET'}, HTTP_OK);
+    readJob(`${baseUrl}/imports/${encodeURIComponent(jobId)}`, {method: 'GET'}, HTTP_STATUS.OK);
 
   /** Null payload: the server does not know this job id. */
   const deleteImport = (jobId: string, deleteKey: string) =>
     readJob(
       `${baseUrl}/imports/${encodeURIComponent(jobId)}`,
       {method: 'DELETE', headers: {'Idempotency-Key': deleteKey}},
-      HTTP_ACCEPTED
+      HTTP_STATUS.ACCEPTED
     );
 
   return {createImport, getImportByKey, getImport, deleteImport};

@@ -1,4 +1,5 @@
 import {fetchText, runTimedRequest} from '@/src/api/importsApi/httpRequest';
+import {HTTP_STATUS} from '@/src/constants/HTTP_STATUS';
 import {LIMITS} from '@/src/constants/LIMITS';
 import {ApiResult} from '@/src/types/importApi';
 import {ERROR_KIND, resolveHttpStatusErrorKind} from '@/src/utils/errors/resolveErrorKind';
@@ -32,7 +33,6 @@ export type MockState = {
   jobs: MockJob[];
 };
 
-const HTTP_OK = 200;
 const SCENARIOS: readonly string[] = Object.values(MOCK_SCENARIO);
 const COUNTER_KEYS: readonly (keyof MockCounters)[] = [
   'createRequests',
@@ -102,7 +102,7 @@ export const createMockControlApi = (baseUrl: string) => {
     if (!outcome.success) {
       return {success: false, error: {kind: outcome.kind, httpStatus: null}};
     }
-    if (outcome.answer.status !== HTTP_OK) {
+    if (outcome.answer.status !== HTTP_STATUS.OK) {
       const {status} = outcome.answer;
       return {
         success: false,
@@ -127,7 +127,7 @@ export const createMockControlApi = (baseUrl: string) => {
     }
     const state = readMockState(result.payload);
     if (!state) {
-      return {success: false, error: {kind: ERROR_KIND.SERVER, httpStatus: HTTP_OK}};
+      return {success: false, error: {kind: ERROR_KIND.SERVER, httpStatus: HTTP_STATUS.OK}};
     }
     return {success: true, payload: state};
   };

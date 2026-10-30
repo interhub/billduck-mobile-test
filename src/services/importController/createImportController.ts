@@ -1,3 +1,4 @@
+import {HTTP_STATUS} from '@/src/constants/HTTP_STATUS';
 import {IMPORT_STATUS} from '@/src/constants/IMPORT_STATUS';
 import {LIMITS} from '@/src/constants/LIMITS';
 import {
@@ -22,6 +23,7 @@ import {
   STATEMENT_REJECTION
 } from '@/src/utils/files/checkStatementFile';
 import {
+  canDeleteOnServer,
   hasServerJob,
   ImportEvent,
   importReducer,
@@ -61,18 +63,23 @@ type Silence = {
 
 const POLLING_PHASES: readonly ImportPhase[] = ['queued', 'processing', 'deleting'];
 const DELETION_STATUSES: readonly IMPORT_STATUS[] = [IMPORT_STATUS.DELETING, IMPORT_STATUS.DELETED];
-/** Request timeout and rate limit are the 4xx answers that can still succeed later. */
-const RETRYABLE_CLIENT_STATUSES: readonly number[] = [408, 429];
 
 const BYTES_PER_KILOBYTE = 1024;
 
-/** A 4xx to a POST: the same key and the same bytes would be refused again, so no retry. */
+/**
+ * A refusal the server would repeat for the same key and bytes (a 4xx other than a timeout or a
+ * rate limit, as the classifier tells), so the upload is not tried again.
+ */
 const isHardRejection = (error: ApiError): boolean => {
-  const {httpStatus} = error;
-  if (httpStatus === null || RETRYABLE_CLIENT_STATUSES.includes(httpStatus)) {
-    return false;
+  return error.kind === ERROR_KIND.VALIDATION && error.httpStatus !== null;
+};
+
+/** The status a key lookup really got: 404, or 200 with a job that is not ours. */
+const lookupStatus = (found: ImportJob | null): number => {
+  if (found) {
+    return HTTP_STATUS.OK;
   }
-  return httpStatus >= 400 && httpStatus < 500;
+  return HTTP_STATUS.NOT_FOUND;
 };
 
 const toSizeKb = (sizeBytes: number): number =>
@@ -308,16 +315,16 @@ export const createImportController = ({
     await closeOperation(operation, resolveDeletionOutcome(isReplacing));
   };
 
-  const markGone = async (token: RunToken) => {
+  const markGone = async (token: RunToken, httpStatus: number) => {
     const transition = await dispatch(token, {type: 'gone_on_server'});
     if (!transition?.accepted) {
       return;
     }
-    recordFor(token, {event: TIMELINE_EVENT.GONE_ON_SERVER, httpStatus: 404});
+    recordFor(token, {event: TIMELINE_EVENT.GONE_ON_SERVER, httpStatus});
     logger.w(LOG_NAME.warning_log, {
       type: LOG_TYPE.poll_job,
       job_id: transition.operation.jobId,
-      http_status: 404
+      http_status: httpStatus
     });
     await closeOperation(transition.operation, 'gone_on_server');
   };
@@ -347,8 +354,9 @@ export const createImportController = ({
     if (found.payload?.jobId === operation.jobId) {
       return 'confirmed';
     }
-    recordFor(token, {event: TIMELINE_EVENT.KEY_LOOKUP_NOT_FOUND, httpStatus: 404});
-    await markGone(token);
+    const httpStatus = lookupStatus(found.payload);
+    recordFor(token, {event: TIMELINE_EVENT.KEY_LOOKUP_NOT_FOUND, httpStatus});
+    await markGone(token, httpStatus);
     return 'gone';
   };
 
@@ -366,7 +374,7 @@ export const createImportController = ({
       silence.failures = 0;
       silence.since = null;
       if (answer.payload === null) {
-        await markGone(token);
+        await markGone(token, HTTP_STATUS.NOT_FOUND);
         return POLL_STEP.STOP;
       }
       await handleJobAnswer(token, answer.payload);
@@ -521,7 +529,7 @@ export const createImportController = ({
         event: TIMELINE_EVENT.UPLOAD_ACCEPTED,
         status: result.payload.status,
         revision: result.payload.revision,
-        httpStatus: 202
+        httpStatus: HTTP_STATUS.ACCEPTED
       });
       await acceptJob(token, result.payload);
       return 'settled';
@@ -589,7 +597,11 @@ export const createImportController = ({
       await acceptJob(token, found.payload);
       return true;
     }
-    recordFor(token, {event: TIMELINE_EVENT.KEY_LOOKUP_NOT_FOUND, httpStatus: 404, attempt});
+    recordFor(token, {
+      event: TIMELINE_EVENT.KEY_LOOKUP_NOT_FOUND,
+      httpStatus: HTTP_STATUS.NOT_FOUND,
+      attempt
+    });
     if (!allowResend) {
       await dispatch(token, {type: 'not_received'});
       return true;
@@ -644,7 +656,7 @@ export const createImportController = ({
       return false;
     }
     if (check.payload === null) {
-      await markGone(token);
+      await markGone(token, HTTP_STATUS.NOT_FOUND);
       return true;
     }
     if (!DELETION_STATUSES.includes(check.payload.status)) {
@@ -687,16 +699,19 @@ export const createImportController = ({
       }
       if (answer.success) {
         if (answer.payload === null) {
-          await markGone(token);
+          await markGone(token, HTTP_STATUS.NOT_FOUND);
           return;
         }
         recordFor(token, {
           event: TIMELINE_EVENT.DELETE_ACCEPTED,
           status: answer.payload.status,
           revision: answer.payload.revision,
-          httpStatus: 202
+          httpStatus: HTTP_STATUS.ACCEPTED
         });
-        await handleJobAnswer(token, answer.payload);
+        // The answer to a DELETE only starts the deletion: "Deleted" waits for a GET that says so.
+        if (answer.payload.status === IMPORT_STATUS.DELETING) {
+          await handleJobAnswer(token, answer.payload);
+        }
         await continueJob(token);
         return;
       }
@@ -752,7 +767,7 @@ export const createImportController = ({
   /** Deletes the current statement on the server and waits for the confirmation. */
   const deleteImport = async (): Promise<DeletionResult> => {
     const operation = state().operation;
-    if (!operation || !hasServerJob(operation)) {
+    if (!operation || !canDeleteOnServer(operation)) {
       return 'stopped';
     }
     await runDeletion(tokenFor(operation.operationId));
@@ -807,7 +822,7 @@ export const createImportController = ({
     serverFileName: string
   ) => {
     const previous = state().operation;
-    if (previous && hasServerJob(previous)) {
+    if (previous && canDeleteOnServer(previous)) {
       setDraft({phase: 'replacing_previous', isReplacementBlocked: false});
       const result = await deleteImport();
       if (result !== 'deleted' && result !== 'gone') {
@@ -982,8 +997,9 @@ export const createImportController = ({
       return;
     }
     if (!found.payload || found.payload.jobId !== operation.jobId) {
-      recordFor(token, {event: TIMELINE_EVENT.KEY_LOOKUP_NOT_FOUND, httpStatus: 404});
-      await markGone(token);
+      const httpStatus = lookupStatus(found.payload);
+      recordFor(token, {event: TIMELINE_EVENT.KEY_LOOKUP_NOT_FOUND, httpStatus});
+      await markGone(token, httpStatus);
       return;
     }
     runtime.verifiedThisLaunch.add(operation.operationId);
@@ -1032,7 +1048,10 @@ export const createImportController = ({
       await acceptJob(token, found.payload);
       return;
     }
-    recordFor(token, {event: TIMELINE_EVENT.KEY_LOOKUP_NOT_FOUND, httpStatus: 404});
+    recordFor(token, {
+      event: TIMELINE_EVENT.KEY_LOOKUP_NOT_FOUND,
+      httpStatus: HTTP_STATUS.NOT_FOUND
+    });
     await dispatch(token, {type: 'not_received'});
   };
 
@@ -1058,7 +1077,7 @@ export const createImportController = ({
       return;
     }
     if (answer.payload === null) {
-      await markGone(token);
+      await markGone(token, HTTP_STATUS.NOT_FOUND);
       return;
     }
     await handleJobAnswer(token, answer.payload);
@@ -1173,7 +1192,11 @@ export const createImportController = ({
       return false;
     }
     if (found.payload === null) {
-      record({operationId: null, event: TIMELINE_EVENT.CLEANUP_NOT_FOUND, httpStatus: 404});
+      record({
+        operationId: null,
+        event: TIMELINE_EVENT.CLEANUP_NOT_FOUND,
+        httpStatus: HTTP_STATUS.NOT_FOUND
+      });
       return true;
     }
     const job = found.payload;
@@ -1288,6 +1311,10 @@ export const createImportController = ({
     void runCleanups();
     const operation = state().operation;
     if (!operation) {
+      return;
+    }
+    // A restored job is read only after `resume` checked in this launch that its key leads to it.
+    if (operation.jobId && !runtime.verifiedThisLaunch.has(operation.operationId)) {
       return;
     }
     if (isPolling(operation)) {

@@ -61,8 +61,9 @@ const detectFormat = (bytes: string): boolean => {
 
 /**
  * An in-memory server with the rules of the kit's mock (scenarios, revisions, keys, counters)
- * plus switches the mock lacks: offline, a held upload answer, a lost delete answer and a forced
- * status. Unit tests drive it under Jest fake timers; the integration tests use the real mock.
+ * plus switches the mock lacks: offline, a held upload answer, a lost delete answer, a forced
+ * upload status and a refused status read. Unit tests drive it under Jest fake timers; the
+ * integration tests use the real mock.
  */
 export const createFakeImportBackend = () => {
   const copies = new Map<string, string>();
@@ -72,6 +73,7 @@ export const createFakeImportBackend = () => {
     isOffline: false,
     loseDeleteAnswers: false,
     forcedUploadStatus: null as number | null,
+    refusedReadStatus: null as number | null,
     holdUploads: false,
     heldUploads: [] as (() => void)[],
     nextJobId: 1,
@@ -204,6 +206,9 @@ export const createFakeImportBackend = () => {
       server.requests.push({method: 'GET', path: `/imports/${jobId}`, headers: {}});
       if (server.isOffline) {
         return NETWORK_FAILURE;
+      }
+      if (server.refusedReadStatus !== null) {
+        return failure(ERROR_KIND.VALIDATION, server.refusedReadStatus);
       }
       const job = server.jobs.get(jobId);
       if (!job) {

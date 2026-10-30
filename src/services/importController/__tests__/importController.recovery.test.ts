@@ -183,6 +183,18 @@ describe('import controller: polling', () => {
     expect(importState().outcome?.kind).toBe('gone_on_server');
   });
 
+  it('reads a restored job only after its key was checked in this launch', async () => {
+    const first = await sendAndWait();
+    const second = await crashAndRelaunch(first, first.backend);
+    const requestsBefore = first.backend.server.requests.length;
+    second.controller.onForeground();
+    await advance(600);
+    const paths = first.backend.server.requests
+      .slice(requestsBefore)
+      .map((request) => request.path);
+    expect(paths).not.toContain('/imports/job-demo-001');
+  });
+
   it('hands a gone job over to its outcome in one update, so no screen sees an empty state', async () => {
     const {backend, controller} = await sendAndWait();
     await advance(1500);

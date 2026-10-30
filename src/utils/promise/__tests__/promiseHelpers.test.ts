@@ -64,13 +64,17 @@ describe('createSerialQueue', () => {
   it('runs tasks one after another even when the first one is slower', async () => {
     const serialize = createSerialQueue();
     const order: string[] = [];
+    const gate = Promise.withResolvers<void>();
     const slow = serialize(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20));
+      await gate.promise;
       order.push('slow');
     });
     const fast = serialize(async () => {
       order.push('fast');
     });
+    await Promise.resolve();
+    expect(order).toEqual([]);
+    gate.resolve();
     await Promise.all([slow, fast]);
     expect(order).toEqual(['slow', 'fast']);
   });

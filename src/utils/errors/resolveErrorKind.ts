@@ -1,3 +1,5 @@
+import {HTTP_STATUS} from '@/src/constants/HTTP_STATUS';
+
 /**
  * How a failed network call must be treated by every retry policy in the app.
  * The kind answers one question: can the very same call still succeed later?
@@ -13,38 +15,6 @@ export enum ERROR_KIND {
   VALIDATION = 'validation',
   UNKNOWN = 'unknown'
 }
-
-/** The only kinds worth repeating - everything else answers the same way forever. */
-export const TRANSIENT_ERROR_KINDS: readonly ERROR_KIND[] = [
-  ERROR_KIND.NETWORK,
-  ERROR_KIND.TIMEOUT,
-  ERROR_KIND.SERVER
-];
-
-/**
- * A read is also repeated on a failure nobody could classify, so an unrecognised shape is
- * not given up at once.
- */
-export const READ_RETRY_ERROR_KINDS: readonly ERROR_KIND[] = [
-  ...TRANSIENT_ERROR_KINDS,
-  ERROR_KIND.UNKNOWN
-];
-
-/**
- * Repeating a read can never spoil anything, and a failure nobody could classify is far more
- * often a passing fault than a permanent one.
- */
-export const isRetryableReadErrorKind = (kind: ERROR_KIND): boolean => {
-  return READ_RETRY_ERROR_KINDS.includes(kind);
-};
-
-const HTTP_STATUS = {
-  BAD_REQUEST: 400,
-  REQUEST_TIMEOUT: 408,
-  TOO_MANY_REQUESTS: 429,
-  INTERNAL_SERVER_ERROR: 500,
-  GATEWAY_TIMEOUT: 504
-} as const;
 
 /** A cancelled or timed out `fetch` rejects with this error name on every platform. */
 const ABORT_ERROR_NAME = 'AbortError';

@@ -78,16 +78,31 @@ export const hasServerJob = (operation: ImportOperation): boolean => {
   return operation.jobId !== null && SERVER_JOB_PHASES.includes(operation.phase);
 };
 
+/**
+ * The server keeps a job worth deleting: a running or finished import, or one whose status read
+ * was refused after the job had been created.
+ */
+export const canDeleteOnServer = (operation: ImportOperation): boolean => {
+  return hasServerJob(operation) || (operation.phase === 'failed' && operation.jobId !== null);
+};
+
 export const phaseForStatus = (status: IMPORT_STATUS): ImportPhase => {
   return STATUS_PHASE[status];
 };
 
-/** A deletion in progress or failed moves only to `deleting` or `deleted`, never back to ready. */
-const phaseAfterAnswer = (currentPhase: ImportPhase, status: IMPORT_STATUS): ImportPhase => {
-  if (DELETION_PHASES.includes(currentPhase) && !DELETION_STATUSES.includes(status)) {
-    return currentPhase;
+/**
+ * Once a deletion was asked for (the delete key is stored), an answer moves the operation only to
+ * `deleting` or `deleted`: a job the server still keeps means the deletion did not go through,
+ * even after a restart or a silent server, and the report never comes back.
+ */
+const phaseAfterAnswer = (operation: ImportOperation, status: IMPORT_STATUS): ImportPhase => {
+  if (operation.deleteKey === null || DELETION_STATUSES.includes(status)) {
+    return phaseForStatus(status);
   }
-  return phaseForStatus(status);
+  if (DELETION_PHASES.includes(operation.phase)) {
+    return operation.phase;
+  }
+  return 'delete_failed';
 };
 
 const accept = (
@@ -116,14 +131,17 @@ const applyJobAnswer = (
         ...operation,
         revision: job.revision,
         serverStatus: job.status,
-        phase: phaseAfterAnswer(operation.phase, job.status)
+        phase: phaseAfterAnswer(operation, job.status)
       },
       verdict
     );
   }
   // Any answer proves the server is back: a silent job returns to the status it last had.
   if (operation.phase === 'server_unavailable' && operation.serverStatus !== null) {
-    return accept({...operation, phase: phaseForStatus(operation.serverStatus)}, verdict);
+    return accept(
+      {...operation, phase: phaseAfterAnswer(operation, operation.serverStatus)},
+      verdict
+    );
   }
   return accept(operation, verdict);
 };
@@ -221,7 +239,7 @@ export const importReducer = (operation: ImportOperation, event: ImportEvent): I
       }
       return accept({...operation, phase: 'server_unavailable'});
     case 'delete_requested':
-      if (!hasServerJob(operation)) {
+      if (!canDeleteOnServer(operation)) {
         return ignore(operation);
       }
       return accept({

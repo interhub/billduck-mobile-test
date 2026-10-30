@@ -48,6 +48,50 @@ describe('import controller: deleting', () => {
     expect(deleted).toHaveLength(1);
   });
 
+  it('says deleted only after a GET, even when a repeated DELETE already answers deleted', async () => {
+    const {backend, controller} = await readyImport();
+    const sendDelete = backend.api.deleteImport;
+    backend.server.loseDeleteAnswers = true;
+    backend.api.deleteImport = async (jobId, deleteKey) => {
+      const answer = await sendDelete(jobId, deleteKey);
+      backend.server.isOffline = true;
+      return answer;
+    };
+    expect(await controller.deleteImport()).toBe('failed');
+    backend.api.deleteImport = sendDelete;
+    backend.server.loseDeleteAnswers = false;
+    backend.server.isOffline = false;
+    await advance(1500);
+    const retrying = controller.retry();
+    await advance(1000);
+    await retrying;
+    const lastDelete = backend.server.requests
+      .map((request) => request.method)
+      .lastIndexOf('DELETE');
+    const afterDelete = backend.server.requests
+      .slice(lastDelete + 1)
+      .map((request) => request.path);
+    expect(afterDelete).toContain('/imports/job-demo-001');
+    expect(importState().outcome?.kind).toBe('deleted');
+  });
+
+  it('keeps an asked deletion after a restart with a silent server: the report never comes back', async () => {
+    const first = await readyImport();
+    first.backend.server.isOffline = true;
+    expect(await first.controller.deleteImport()).toBe('failed');
+    const second = await crashAndRelaunch(first, first.backend);
+    await second.controller.resume();
+    expect(importState().operation?.phase).toBe('server_unavailable');
+    first.backend.server.isOffline = false;
+    await second.controller.retry();
+    expect(importState().operation?.phase).toBe('delete_failed');
+    expect(first.backend.server.stats.deleteRequests).toBe(0);
+    const deleting = second.controller.retry();
+    await advance(1500);
+    await deleting;
+    expect(importState().outcome?.kind).toBe('deleted');
+  });
+
   it('hands a deleted import over to its outcome in one update, so no screen sees an empty state', async () => {
     const {controller} = await readyImport();
     const recording = recordStoreStates();
@@ -151,6 +195,28 @@ describe('import controller: replacing the previous statement', () => {
     expect(importState().operation).toMatchObject({phase: 'ready', jobId: 'job-demo-002'});
     expect(backend.server.stats).toMatchObject({newJobs: 2, deleteRequests: 1});
     expect(importState().timeline.some((entry) => entry.aboutPrevious)).toBe(true);
+  });
+
+  it('deletes a failed import that already has a job before the new statement goes out', async () => {
+    const backend = createFakeImportBackend();
+    backend.server.refusedReadStatus = 403;
+    const {controller} = launchController(backend);
+    await pickCsv(controller, backend);
+    const sending = controller.send();
+    await advance(1000);
+    await sending;
+    expect(importState().operation).toMatchObject({phase: 'failed', jobId: 'job-demo-001'});
+    backend.server.refusedReadStatus = null;
+    await pickCsv(controller, backend);
+    const replacing = controller.send();
+    await advance(4000);
+    await replacing;
+    const calls = backend.server.requests.map((request) => `${request.method} ${request.path}`);
+    expect(calls).toContain('DELETE /imports/job-demo-001');
+    expect(calls.indexOf('DELETE /imports/job-demo-001')).toBeLessThan(
+      calls.lastIndexOf('POST /imports')
+    );
+    expect(importState().operation).toMatchObject({phase: 'ready', jobId: 'job-demo-002'});
   });
 
   it('does not send the new statement while the old one fails to delete', async () => {

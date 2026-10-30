@@ -58,7 +58,10 @@ export const PaymentRow = ({item, currency, dotColor, onPress, testID}: PaymentR
           <TextLine variant="money" align="right">
             {amount}
           </TextLine>
-          <CaretRightIcon size={ICON_SIZE.sm} color={colors.textMuted} weight="regular" />
+          <View style={styles.detailsLine}>
+            <TextLine variant="caption">{t.importResult.details}</TextLine>
+            <CaretRightIcon size={ICON_SIZE.sm} color={colors.textMuted} weight="regular" />
+          </View>
         </View>
       </TouchableScaleView>
     </View>
@@ -92,6 +95,10 @@ const usePaymentRowStyles = getResponsiveStylesHook(() =>
       flexShrink: 1
     },
     trailing: {
+      alignItems: 'flex-end',
+      gap: SPACING.xs
+    },
+    detailsLine: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: SPACING.xs

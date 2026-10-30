@@ -17,6 +17,7 @@ import {ScenarioPicker} from '@/src/screens/Diagnostics/components/ScenarioPicke
 import {HealthState, useMockDiagnostics} from '@/src/screens/Diagnostics/hooks/useMockDiagnostics';
 import {useImportStore} from '@/src/stores/importStore';
 import {ImportOperation} from '@/src/types/importOperation';
+import {formatExactBytes} from '@/src/utils/format/formatFileSize';
 import {getResponsiveStylesHook} from '@/src/utils/styles/getResponsiveStylesHook';
 
 const COUNTER_KEYS: readonly (keyof MockCounters)[] = [
@@ -79,15 +80,18 @@ type MockJobLinesProps = {
 };
 
 const MockJobLines = ({mockState}: MockJobLinesProps) => {
-  const {t} = useTranslation();
+  const {t, language} = useTranslation();
   if (!mockState?.jobs.length) {
     return <TextLine variant="caption">{t.diagnostics.noJobs}</TextLine>;
   }
-  const lines = mockState.jobs.map((job) => (
-    <TextLine key={job.jobId} variant="money">
-      {`${job.jobId} · ${job.status} · r${job.revision} · ${job.bytes} B`}
-    </TextLine>
-  ));
+  const lines = mockState.jobs.map((job) => {
+    const jobLine = `${job.jobId} · ${job.status} · r${job.revision} · ${formatExactBytes(job.bytes, language)}`;
+    return (
+      <TextLine key={job.jobId} variant="money">
+        {jobLine}
+      </TextLine>
+    );
+  });
   return <>{lines}</>;
 };
 
@@ -100,6 +104,7 @@ const StoredOperationRows = ({operation}: StoredOperationRowsProps) => {
   if (!operation) {
     return <TextLine variant="caption">{t.diagnostics.nothingStored}</TextLine>;
   }
+  const jobId = operation.jobId ?? t.diagnostics.noValue;
   return (
     <>
       <InfoRow
@@ -108,7 +113,7 @@ const StoredOperationRows = ({operation}: StoredOperationRowsProps) => {
         valueVariant="money"
         testID="diagnostics_phase_text"
       />
-      <InfoRow label={t.diagnostics.jobLabel} value={operation.jobId ?? '—'} valueVariant="money" />
+      <InfoRow label={t.diagnostics.jobLabel} value={jobId} valueVariant="money" />
       <InfoRow
         label={t.diagnostics.revisionLabel}
         value={String(operation.revision)}
@@ -139,15 +144,18 @@ export const DiagnosticsScreen = () => {
   };
   const header = <ScreenHeader onBack={navigation.goBack} testID="diagnostics_back_button" />;
   const isServerDown = health === 'down';
-  const counters = COUNTER_KEYS.map((counterKey) => (
-    <InfoRow
-      key={counterKey}
-      label={t.diagnostics.counter[counterKey]}
-      value={String(mockState?.stats[counterKey] ?? '—')}
-      valueVariant="money"
-      testID={COUNTER_TEST_ID[counterKey]}
-    />
-  ));
+  const counters = COUNTER_KEYS.map((counterKey) => {
+    const counterValue = String(mockState?.stats[counterKey] ?? t.diagnostics.noValue);
+    return (
+      <InfoRow
+        key={counterKey}
+        label={t.diagnostics.counter[counterKey]}
+        value={counterValue}
+        valueVariant="money"
+        testID={COUNTER_TEST_ID[counterKey]}
+      />
+    );
+  });
   const footer = (
     <>
       <MainButton

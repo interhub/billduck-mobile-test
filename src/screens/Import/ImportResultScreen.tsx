@@ -84,8 +84,8 @@ export const ImportResultScreen = () => {
   const subject = useImportSubject();
   const isFocused = useIsFocused();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  // The report exists only while the statement is ready: a deletion, a job the server no longer
-  // knows or any other phase is told by the status screen, and nothing at all sends the person home.
+  // The report lives only while the statement is ready. Any other phase (a deletion, a job the
+  // server no longer knows) moves to the status screen, and with no import at all it goes home.
   useEffect(() => {
     if (!isFocused || subject.phase === 'ready') {
       return;
