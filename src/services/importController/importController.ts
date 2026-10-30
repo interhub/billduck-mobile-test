@@ -6,7 +6,6 @@ import {ENV} from '@/src/config/env';
 import {appActivity} from '@/src/services/importController/appActivity';
 import {createImportController} from '@/src/services/importController/createImportController';
 import {createOperationRepository} from '@/src/services/importController/operationRepository';
-import {useAppStateStore} from '@/src/stores/appStateStore';
 import {useImportStore} from '@/src/stores/importStore';
 import {statementFileStore} from '@/src/utils/files/statementFileStore';
 import {wait} from '@/src/utils/promise/wait';
@@ -21,11 +20,4 @@ export const importController = createImportController({
   createUuid: randomUUID,
   now: () => new Date(),
   wait
-});
-
-// Back in the foreground the controller resumes polling, rereads a ready job and runs cleanups.
-useAppStateStore.subscribe((state, previousState) => {
-  if (state.isActive && !previousState.isActive) {
-    importController.onForeground();
-  }
 });

@@ -3,6 +3,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import {StatusBar} from 'expo-status-bar';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {ThemeColors} from '@/src/constants/UI_COLORS';
+import {useResumeImportOnForeground} from '@/src/hooks/import/useResumeImportOnForeground';
 import {useAppStateWatcher} from '@/src/hooks/sensors/useAppStateWatcher';
 import {useSystemBackground} from '@/src/hooks/styles/useSystemBackground';
 import {useThemeColors} from '@/src/hooks/styles/useThemeColors';
@@ -30,6 +31,7 @@ const buildNavigationTheme = (colors: ThemeColors): Theme => ({
 
 export const App = () => {
   useAppStateWatcher();
+  useResumeImportOnForeground();
   useSystemBackground();
   const isReady = useInitialAppLoading();
   const colors = useThemeColors();
