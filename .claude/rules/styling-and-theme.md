@@ -18,7 +18,7 @@ paths:
 - `useThemeColors()` (`src/hooks/styles/useThemeColors.ts`) picks the palette from `useColorScheme()`: `'dark'` gives `dark`; `'light'`, `'unspecified'` and `null` give `light`.
 - One accent, duck yellow, at most once per screen. Never violet, blue neon, gradients, pure black `#000000` or pure white text on black.
 - `app.config.ts` is the only other file that writes hex values (splash and adaptive icon background).
-- The values come from the brand document and live in `src/constants/UI_COLORS.ts`, `UI_SIZES.ts`, `UI_MOTION.ts` and `FONT_NAME.ts`; never a second copy of a value anywhere else.
+- The values come from the brand (`docs/PROMPT.md`) and live in `src/constants/UI_COLORS.ts`, `UI_SIZES.ts`, `UI_MOTION.ts` and `FONT_NAME.ts`; never a second copy of a value anywhere else.
 - Status colors and their icons follow the `StatusBadge` table in `ui-kit.md`; color is never the only sign of a status.
 - The status bar follows the theme (`expo-status-bar`), and on Android the system background comes from the palette through `expo-system-ui`, so the dark theme has a dark system background.
 
@@ -98,7 +98,7 @@ const usePaymentCardStyles = getResponsiveStylesHook(({colors}) =>
 - Never hardcode inset numbers. Leave 12-16 pt between the pinned footer and the bottom safe area edge.
 
 ## Motion
-- Animate with the built-in `Animated` API and `useNativeDriver: true`: the native driver moves only `opacity` and `transform`, never layout. Keep each `Animated.Value` in `useRef`.
+- Animate with the built-in `Animated` API and `useNativeDriver: true`: the native driver moves only `opacity` and `transform`, never layout. Create each `Animated.Value` once in a `useState` initializer (`const [opacity] = useState(() => new Animated.Value(1));`): React Compiler forbids reading `ref.current` during render.
 - 150-250 ms with `Easing.bezier(0.16, 1, 0.3, 1)` in `Animated.timing`, or `Animated.spring` with stiffness 100 and damping 20 (`MOTION` in `src/constants/UI_MOTION.ts`).
 - A status change cross-fades; it never jumps.
 - Reduce Motion comes from `useReduceMotion()` (`src/hooks/sensors/useReduceMotion.ts`), built on `AccessibilityInfo.isReduceMotionEnabled()` and the `reduceMotionChanged` event. While it is on, skip every animation and show the end state: no pulse, no press scale, no cross-fade.

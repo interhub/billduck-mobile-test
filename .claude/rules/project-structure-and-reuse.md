@@ -3,6 +3,7 @@
 ## Scope
 - Answers two questions before any code is written: where does this file go, and what already exists that does this.
 - The conventions themselves live in the sibling rules: `rn-code-styles.md`, `styling-and-theme.md`, `ui-kit.md`, `custom-hooks.md`, `navigation.md`, `icons-and-images.md`, `logging-and-privacy.md`, `network-and-import-policy.md`, `expo-config-and-native.md`, `testid-and-accessibility.md`, `testing.md`.
+- The requirements, the architecture decisions and the brand are collected in `docs/PROMPT.md`. When a rule and that document disagree, the document wins.
 - Import with the alias `@/src/...` (`tsconfig.json` maps `@/*` to the repo root): `import {TextLine} from '@/src/components/ui/TextLine';`. Relative imports only between siblings of one folder.
 - Code, comments and documents never contain absolute paths from a developer machine, or names and paths of other projects.
 

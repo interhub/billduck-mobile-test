@@ -43,5 +43,6 @@ const {t} = useTranslation();
 - Every screen stays usable at the largest system font size (`styling-and-theme.md`).
 
 ## How To Verify
-- iOS: on a simulator run `idb ui describe-all --udid <udid>` (start `idb_companion` with `2>/dev/null`, `logging-and-privacy.md`); the element must show an `AXUniqueId` equal to its testID. An empty id next to a filled `AXLabel` means the testID sits on an accessibility element: move it to a wrapper.
+- Android: `adb shell uiautomator dump` shows every testID as the `resource-id` of its node.
+- iOS: `idb ui describe-all --udid <udid>` (start `idb_companion` with `2>/dev/null`, `logging-and-privacy.md`) lists the accessibility elements with their labels. On the iOS 27 simulator it leaves `AXUniqueId` empty for every element, so the wrapper rule is checked in the code and iOS elements are matched by label.
 - Match by label (the visible text or `accessibilityLabel`) only when no stable id exists.

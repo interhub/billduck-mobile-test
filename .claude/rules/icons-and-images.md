@@ -32,10 +32,9 @@ paths:
 - Never draw large pictures as `Svg`, and never put dozens of masked or gradient `Svg` elements on one screen: they stall weak Android phones.
 - Pictures are bitmaps through `expo-image`; `Svg` is for the logo only, icons come from Phosphor.
 
-## Making And Checking Pictures
-- Pictures come after both platforms pass the acceptance matrix on the grey skeleton; until then a screen holds a plain rectangle of the final size.
+## The Pictures Themselves
+- Ready pictures live in `assets/`: the illustrations in `assets/illustrations/`, the app icon and the splash image in `assets/images/` (`expo-config-and-native.md`). The brand and the list of pictures are described in `docs/PROMPT.md`.
 - The duck is the same character on every picture.
-- Monoline pictures: graphite lines of one weight, white faces, exactly one yellow element. Glossy 3D pictures: only the warm brand palette (duck yellow, graphite, cream `#F4F1EA`, the payment colors). Never violet, purple, blue gradients, neon, money bills, coins or piggy banks.
+- Monoline pictures: graphite lines of one weight, white faces, exactly one yellow element. Glossy 3D pictures (the icon and the splash): only the warm brand palette (duck yellow, graphite, cream `#F4F1EA`, the payment colors). Never violet, purple, blue gradients, neon, money bills, coins or piggy banks.
 - The dark variant is made from the same picture (light lines, transparent background), never drawn separately.
-- Look at every picture with your own eyes on light and dark backgrounds, in the running app too: the duck matches, no text crept in, exactly one yellow element.
-- The app icon and the splash image live in `assets/images/`, come from the glossy 3D series and follow `expo-config-and-native.md`.
+- Look at every new picture with your own eyes on light and dark backgrounds, in the running app too: the duck matches, no text crept in, exactly one yellow element.

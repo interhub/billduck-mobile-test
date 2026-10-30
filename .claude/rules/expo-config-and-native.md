@@ -26,7 +26,7 @@ paths:
 ## app.config.ts
 - Identity: `name: 'BillDuck'` in both languages, `slug: 'billduck'`, `scheme: 'billduck'`, `ios.bundleIdentifier` and `android.package` both `com.billduck.app`, `ios.infoPlist.CFBundleDisplayName: 'BillDuck'`. The name has no spaces, so the iOS target and the Android label match without a rename plugin.
 - Phones only, portrait only: `orientation: 'portrait'`, `ios.supportsTablet: false`. Never lock or unlock orientation at runtime and never install `expo-screen-orientation`. Every `<Modal>` follows the modal rule in `styling-and-theme.md`.
-- `userInterfaceStyle: 'automatic'` (light and dark themes; on Android this needs `expo-system-ui`), `newArchEnabled: true`, Hermes (the default), `experiments.reactCompiler: true`.
+- `userInterfaceStyle: 'automatic'` (light and dark themes; on Android this needs `expo-system-ui`), the New Architecture (always on in SDK 57; the config has no `newArchEnabled` key), Hermes (the default), `experiments.reactCompiler: true`.
 - Never set `edgeToEdgeEnabled`: prebuild no longer supports the key, and Android 16 turns edge-to-edge on by itself.
 - Keep the Expo defaults for the iOS deployment target (16.4 in SDK 57, never lower) and for the Podfile.
 - Backups: `android.allowBackup: false`. On iOS the cloud backup gets only the minimal stored state, without the file name and the payments; file copies live in `Caches`, which iOS never backs up.
