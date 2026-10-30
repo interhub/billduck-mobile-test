@@ -114,6 +114,15 @@ export const pickCsv = async (controller: ImportController, backend: FakeImportB
 
 export const importState = () => useImportStore.getState();
 
+/** Every store update as "operation phase / outcome kind": the states a screen could render. */
+export const recordStoreStates = () => {
+  const states: string[] = [];
+  const stop = useImportStore.subscribe((snapshot) => {
+    states.push(`${snapshot.operation?.phase ?? 'none'} / ${snapshot.outcome?.kind ?? 'none'}`);
+  });
+  return {states, stop};
+};
+
 export const timelineEvents = (): TIMELINE_EVENT[] =>
   importState().timeline.map((entry) => entry.event);
 

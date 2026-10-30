@@ -1,5 +1,5 @@
-import {useFocusEffect} from '@react-navigation/native';
-import {useCallback, useState} from 'react';
+import {useFocusEffect, useIsFocused} from '@react-navigation/native';
+import {useCallback, useEffect, useState} from 'react';
 import {ActivityIndicator, Alert, StyleSheet, View} from 'react-native';
 import {useShallow} from 'zustand/react/shallow';
 import {MainButton} from '@/src/components/ui/MainButton';
@@ -10,6 +10,7 @@ import {StatusBadge, toBadgePhase} from '@/src/components/ui/StatusBadge';
 import {TextLine} from '@/src/components/ui/TextLine';
 import {PAYMENT_DOT_COLORS} from '@/src/constants/UI_COLORS';
 import {BORDER_WIDTH, SPACING} from '@/src/constants/UI_SIZES';
+import {useImportSubject} from '@/src/hooks/import/useImportSubject';
 import {useThemeColors} from '@/src/hooks/styles/useThemeColors';
 import {useTranslation} from '@/src/i18n/useTranslation';
 import {useAppNavigation} from '@/src/navigation/hooks/useAppNavigation';
@@ -80,7 +81,21 @@ export const ImportResultScreen = () => {
       timeline: state.timeline
     }))
   );
+  const subject = useImportSubject();
+  const isFocused = useIsFocused();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // The report exists only while the statement is ready: a deletion, a job the server no longer
+  // knows or any other phase is told by the status screen, and nothing at all sends the person home.
+  useEffect(() => {
+    if (!isFocused || subject.phase === 'ready') {
+      return;
+    }
+    if (!subject.phase) {
+      navigation.popTo(SCREEN_NAME.HOME);
+      return;
+    }
+    navigation.replace(SCREEN_NAME.IMPORT_STATUS);
+  }, [isFocused, subject.phase, navigation]);
   // Opening the report reads the status once more, so an older answer can show up and be skipped.
   useFocusEffect(
     useCallback(() => {
@@ -106,7 +121,6 @@ export const ImportResultScreen = () => {
         style: 'destructive',
         onPress: () => {
           void importController.deleteImport();
-          navigation.replace(SCREEN_NAME.IMPORT_STATUS);
         }
       }
     ]);

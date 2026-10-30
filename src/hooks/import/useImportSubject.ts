@@ -29,7 +29,8 @@ const EMPTY_SUBJECT: ImportSubject = {
 
 /**
  * A new statement that waits for the previous one to be deleted comes first, then the stored
- * operation, then the outcome of the one that just ended.
+ * operation (a deleted or gone one keeps its phase until its outcome takes over), then the
+ * outcome of the one that just ended.
  */
 const resolveImportSubject = (
   draft: ImportDraft | null,
@@ -48,7 +49,7 @@ const resolveImportSubject = (
       outcome: null
     };
   }
-  if (operation && operation.phase !== 'deleted' && operation.phase !== 'gone_on_server') {
+  if (operation) {
     return {
       phase: toBadgePhase(operation.phase),
       titleSource: {createdAt: operation.createdAt, file: operation.file},

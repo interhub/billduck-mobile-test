@@ -6,6 +6,7 @@ import {
   launchController,
   pickCsv,
   postRequests,
+  recordStoreStates,
   resetWorld,
   timelineEvents
 } from './controllerHarness';
@@ -45,6 +46,18 @@ describe('import controller: deleting', () => {
       (entry) => entry.event === TIMELINE_EVENT.DELETED
     );
     expect(deleted).toHaveLength(1);
+  });
+
+  it('hands a deleted import over to its outcome in one update, so no screen sees an empty state', async () => {
+    const {controller} = await readyImport();
+    const recording = recordStoreStates();
+    const deleting = controller.deleteImport();
+    await advance(1500);
+    await deleting;
+    recording.stop();
+    expect(recording.states).toContain('deleted / none');
+    expect(recording.states).not.toContain('none / none');
+    expect(recording.states.slice(-1)).toEqual(['none / deleted']);
   });
 
   it('never says deleted on a 503, and Retry with the same delete key reaches deleted', async () => {

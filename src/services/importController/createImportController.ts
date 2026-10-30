@@ -240,10 +240,17 @@ export const createImportController = ({
         return;
       }
       runtime.generation += 1;
-      await saveSnapshot(null, state().pendingCleanups);
+      const pendingCleanups = state().pendingCleanups;
+      await repository.save({operation: null, pendingCleanups});
       files.removeCopy(operation.operationId);
-      const outcome = buildOutcome(operation, outcomeKind);
-      store.setState({payments: null, isReconnecting: false, outcome});
+      // One update: a screen never sees the operation gone before its outcome is there.
+      store.setState({
+        operation: null,
+        pendingCleanups,
+        payments: null,
+        isReconnecting: false,
+        outcome: buildOutcome(operation, outcomeKind)
+      });
     });
 
   const handleJobAnswer = async (token: RunToken, job: ImportJob): Promise<void> => {

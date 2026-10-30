@@ -7,6 +7,9 @@ module.exports = {
   globalSetup: '<rootDir>/jest.globalSetup.js',
   setupFiles: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1'
+    '^@/(.*)$': '<rootDir>/$1',
+    // tsconfig points icon imports at their type declarations; tests run the compiled icons
+    '^phosphor-react-native/src/icons/(.*)$':
+      '<rootDir>/node_modules/phosphor-react-native/lib/commonjs/icons/$1'
   }
 };

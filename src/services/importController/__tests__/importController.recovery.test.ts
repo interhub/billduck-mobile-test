@@ -6,6 +6,7 @@ import {
   launchController,
   pickCsv,
   postRequests,
+  recordStoreStates,
   resetWorld,
   timelineEvents
 } from './controllerHarness';
@@ -180,6 +181,18 @@ describe('import controller: polling', () => {
     await controller.refreshStatus();
     expect(importState().operation).toBeNull();
     expect(importState().outcome?.kind).toBe('gone_on_server');
+  });
+
+  it('hands a gone job over to its outcome in one update, so no screen sees an empty state', async () => {
+    const {backend, controller} = await sendAndWait();
+    await advance(1500);
+    backend.reset();
+    const recording = recordStoreStates();
+    await controller.refreshStatus();
+    recording.stop();
+    expect(recording.states).toContain('gone_on_server / none');
+    expect(recording.states).not.toContain('none / none');
+    expect(recording.states.slice(-1)).toEqual(['none / gone_on_server']);
   });
 
   it('never takes a stranger job with the same number after a mock reset and a relaunch', async () => {
