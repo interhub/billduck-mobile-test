@@ -45,6 +45,9 @@ type PostOutcome = 'settled' | 'unknown';
 
 type DeletionResult = 'deleted' | 'gone' | 'failed' | 'stopped';
 
+/** What the key says about the stored job: still ours, gone, no answer, or the run is over. */
+type Ownership = 'confirmed' | 'gone' | 'no_answer' | 'dropped';
+
 /** Polling state of one loop: failed reads in a row and the moment the silence began. */
 type Silence = {
   failures: number;
@@ -258,6 +261,36 @@ export const createImportController = ({
       http_status: 404
     });
     await closeOperation(transition.operation, 'gone_on_server');
+  };
+
+  /**
+   * A reset mock numbers jobs from the start again, so a stored job id may already belong to
+   * someone else's upload. Before a status read or a DELETE outside polling, the key must still
+   * lead to our job; otherwise the import is gone and the other job is never read or deleted.
+   */
+  const confirmOwnership = async (token: RunToken): Promise<Ownership> => {
+    const operation = state().operation;
+    if (!operation?.jobId || !isCurrent(token)) {
+      return 'dropped';
+    }
+    const found = await api.getImportByKey(operation.idempotencyKey);
+    if (!isCurrent(token)) {
+      return 'dropped';
+    }
+    if (!found.success) {
+      recordFor(token, {
+        event: TIMELINE_EVENT.NO_ANSWER,
+        errorKind: found.error.kind,
+        httpStatus: found.error.httpStatus
+      });
+      return 'no_answer';
+    }
+    if (found.payload?.jobId === operation.jobId) {
+      return 'confirmed';
+    }
+    recordFor(token, {event: TIMELINE_EVENT.KEY_LOOKUP_NOT_FOUND, httpStatus: 404});
+    await markGone(token);
+    return 'gone';
   };
 
   /** One status read of the polling loop. */
@@ -577,6 +610,15 @@ export const createImportController = ({
       const requested = await dispatch(token, {type: 'delete_requested', deleteKey: createKey()});
       const operation = requested?.operation;
       if (!requested?.accepted || !operation?.jobId || !operation.deleteKey) {
+        return;
+      }
+      const ownership = await confirmOwnership(token);
+      if (ownership === 'no_answer') {
+        recordFor(token, {event: TIMELINE_EVENT.DELETE_FAILED});
+        await dispatch(token, {type: 'delete_failed'});
+        return;
+      }
+      if (ownership !== 'confirmed') {
         return;
       }
       recordFor(token, {event: TIMELINE_EVENT.DELETE_SENT});
@@ -939,6 +981,9 @@ export const createImportController = ({
   const readJobAndContinue = async (token: RunToken) => {
     const operation = state().operation;
     if (!operation?.jobId || !isCurrent(token)) {
+      return;
+    }
+    if ((await confirmOwnership(token)) !== 'confirmed') {
       return;
     }
     const answer = await api.getImport(operation.jobId);

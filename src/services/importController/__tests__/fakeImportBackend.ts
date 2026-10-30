@@ -61,8 +61,8 @@ const detectFormat = (bytes: string): boolean => {
 
 /**
  * An in-memory server with the rules of the kit's mock (scenarios, revisions, keys, counters)
- * plus switches the mock lacks: offline, a held upload answer and a forced status. Unit tests
- * drive it under Jest fake timers; the integration tests use the real mock.
+ * plus switches the mock lacks: offline, a held upload answer, a lost delete answer and a forced
+ * status. Unit tests drive it under Jest fake timers; the integration tests use the real mock.
  */
 export const createFakeImportBackend = () => {
   const copies = new Map<string, string>();
@@ -70,6 +70,7 @@ export const createFakeImportBackend = () => {
   const server = {
     mode: 'happy' as FakeScenario,
     isOffline: false,
+    loseDeleteAnswers: false,
     forcedUploadStatus: null as number | null,
     holdUploads: false,
     heldUploads: [] as (() => void)[],
@@ -235,6 +236,9 @@ export const createFakeImportBackend = () => {
       }
       server.deleteKeys.set(deleteKey, jobId);
       job.deletedAt = job.deletedAt ?? Date.now();
+      if (server.loseDeleteAnswers) {
+        return NETWORK_FAILURE;
+      }
       return {success: true, payload: jobView(job, 'happy')};
     }
   };
@@ -300,6 +304,21 @@ export const createFakeImportBackend = () => {
       server.deleteKeys.clear();
       server.getCounts.clear();
       server.stats = {createRequests: 0, newJobs: 0, duplicateHits: 0, deleteRequests: 0};
+    },
+    /** Another client's upload: after a reset it takes the number our stored job had. */
+    addStrangerJob: (): FakeJob => {
+      const jobId = `job-demo-${String(server.nextJobId).padStart(3, '0')}`;
+      server.nextJobId += 1;
+      const strangerJob: FakeJob = {
+        jobId,
+        key: 'stranger-key-0001',
+        bytes: 'date,description,amount\n',
+        createdAt: Date.now(),
+        deletedAt: null
+      };
+      server.jobs.set(jobId, strangerJob);
+      server.byKey.set(strangerJob.key, jobId);
+      return strangerJob;
     },
     releaseUploads: () => {
       const held = server.heldUploads.splice(0);

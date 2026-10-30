@@ -63,16 +63,39 @@ describe('import controller: deleting', () => {
     expect(importState().outcome?.kind).toBe('deleted');
   });
 
-  it('checks the job when the DELETE got no answer and stays honest about it', async () => {
+  it('says not deleted when the server is silent before the DELETE, and Retry deletes', async () => {
     const {backend, controller} = await readyImport();
     backend.server.isOffline = true;
     expect(await controller.deleteImport()).toBe('failed');
     expect(importState().operation?.phase).toBe('delete_failed');
+    expect(importState().outcome).toBeNull();
+    expect(deleteRequests(backend)).toHaveLength(0);
     backend.server.isOffline = false;
     const retrying = controller.retry();
     await advance(1500);
     await retrying;
+    expect(deleteRequests(backend)).toHaveLength(1);
     expect(importState().outcome?.kind).toBe('deleted');
+  });
+
+  it('checks the job when the DELETE arrived but its answer was lost, and waits for deleted', async () => {
+    const {backend, controller} = await readyImport();
+    backend.server.loseDeleteAnswers = true;
+    const deleting = controller.deleteImport();
+    await advance(1500);
+    expect(await deleting).toBe('deleted');
+    expect(deleteRequests(backend)).toHaveLength(1);
+    expect(importState().outcome?.kind).toBe('deleted');
+  });
+
+  it('never deletes a stranger job that took the same number after a mock reset', async () => {
+    const {backend, controller} = await readyImport();
+    backend.reset();
+    const strangerJob = backend.addStrangerJob();
+    expect(await controller.deleteImport()).toBe('gone');
+    expect(deleteRequests(backend)).toHaveLength(0);
+    expect(strangerJob.deletedAt).toBeNull();
+    expect(importState().outcome?.kind).toBe('gone_on_server');
   });
 
   it('marks a stored deletion that never reached the server as not deleted after a relaunch', async () => {

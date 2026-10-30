@@ -59,7 +59,7 @@ export const ImportResultScreen = () => {
         style: 'destructive',
         onPress: () => {
           void importController.deleteImport();
-          navigation.navigate(SCREEN_NAME.IMPORT_STATUS);
+          navigation.replace(SCREEN_NAME.IMPORT_STATUS);
         }
       }
     ]);

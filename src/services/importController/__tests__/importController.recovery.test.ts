@@ -186,19 +186,26 @@ describe('import controller: polling', () => {
     const first = await sendAndWait();
     await advance(1500);
     first.backend.reset();
-    first.backend.server.byKey.set('stranger-key-0001', 'job-demo-001');
-    first.backend.server.jobs.set('job-demo-001', {
-      jobId: 'job-demo-001',
-      key: 'stranger-key-0001',
-      bytes: 'date,description,amount\n',
-      createdAt: Date.now(),
-      deletedAt: null
-    });
+    first.backend.addStrangerJob();
     const second = await crashAndRelaunch(first, first.backend);
     await second.controller.resume();
     expect(importState().operation).toBeNull();
     expect(importState().outcome?.kind).toBe('gone_on_server');
     expect(first.backend.server.stats.deleteRequests).toBe(0);
+  });
+
+  it('never reads a stranger job with the same number while the app keeps running', async () => {
+    const {backend, controller} = await sendAndWait();
+    await advance(1500);
+    expect(importState().operation).toMatchObject({phase: 'ready', jobId: 'job-demo-001'});
+    backend.reset();
+    const strangerJob = backend.addStrangerJob();
+    const requestsBefore = backend.server.requests.length;
+    await controller.refreshStatus();
+    const paths = backend.server.requests.slice(requestsBefore).map((request) => request.path);
+    expect(paths).not.toContain(`/imports/${strangerJob.jobId}`);
+    expect(importState().operation).toBeNull();
+    expect(importState().outcome?.kind).toBe('gone_on_server');
   });
 
   it('skips processing r2 after ready r3 and keeps the report', async () => {

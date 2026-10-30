@@ -200,7 +200,7 @@ export const ImportStatusScreen = () => {
       importController.cancelDraft();
       toHome();
     },
-    openReport: () => navigation.navigate(SCREEN_NAME.IMPORT_RESULT),
+    openReport: () => navigation.popTo(SCREEN_NAME.IMPORT_RESULT),
     pickAgain: async () => {
       const isPicked = await importController.pickFile();
       if (isPicked) {

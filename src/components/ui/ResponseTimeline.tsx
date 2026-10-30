@@ -75,6 +75,16 @@ const describeDetails = (entry: TimelineEntry, t: Translation): string => {
   return parts.join(' · ');
 };
 
+const SENTENCE_END = /[.!?…]$/;
+
+/** The screen reader hears the event and its details as two sentences, without a doubled stop. */
+const describeForScreenReader = (eventText: string, details: string): string => {
+  if (SENTENCE_END.test(eventText)) {
+    return `${eventText} ${details}`;
+  }
+  return `${eventText}. ${details}`;
+};
+
 type TimelineRowProps = {
   entry: TimelineEntry;
   isLast: boolean;
@@ -86,9 +96,10 @@ const TimelineRow = ({entry, isLast}: TimelineRowProps) => {
   const toneColor = colors[TONE_COLOR[EVENT_TONE[entry.event]]];
   const eventText = describeEvent(entry, t);
   const details = describeDetails(entry, t);
+  const accessibilityLabel = describeForScreenReader(eventText, details);
   const rail = isLast ? null : <View style={styles.rail} />;
   return (
-    <View style={styles.row} accessible accessibilityLabel={`${eventText}. ${details}`}>
+    <View style={styles.row} accessible accessibilityLabel={accessibilityLabel}>
       <View style={styles.marker}>
         <View style={[styles.dot, {backgroundColor: toneColor}]} />
         {rail}
