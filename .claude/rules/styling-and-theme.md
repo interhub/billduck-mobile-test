@@ -86,7 +86,7 @@ const usePaymentCardStyles = getResponsiveStylesHook(({colors}) =>
 - Never fall back to Inter or the system font. Russian text keeps the brand fonts; if one of them lacks Cyrillic, Russian uses the nearest brand font instead.
 
 ## Large System Font And Small Screens
-- Texts grow with the system font size: never set `allowFontScaling={false}`, never cap `maxFontSizeMultiplier`.
+- Texts grow with the system font size: never set `allowFontScaling={false}`, never cap `maxFontSizeMultiplier`. The one exception lives in `TextLine`: a text whose word broke in the middle shrinks step by step until the words are whole, never below its size at the default system setting.
 - Every screen scrolls (`ScreenLayout`), and its main buttons stay reachable in the pinned footer.
 - Let rows wrap (`flexWrap`) instead of truncating amounts or statuses; never give a text container a fixed height.
 - `Illustration` halves its size when `fontScale > 1.3` or the window is shorter than 700 pt, and hides when `fontScale > 1.6`.
@@ -99,7 +99,7 @@ const usePaymentCardStyles = getResponsiveStylesHook(({colors}) =>
 
 ## Motion
 - Animate with the built-in `Animated` API and `useNativeDriver: true`: the native driver moves only `opacity` and `transform`, never layout. Create each `Animated.Value` once in a `useState` initializer (`const [opacity] = useState(() => new Animated.Value(1));`): React Compiler forbids reading `ref.current` during render.
-- 150-250 ms with `Easing.bezier(0.16, 1, 0.3, 1)` in `Animated.timing`, or `Animated.spring` with stiffness 100 and damping 20 (`MOTION` in `src/constants/UI_MOTION.ts`).
+- 150-250 ms with `Easing.bezier(0.16, 1, 0.3, 1)` in `Animated.timing`, or `Animated.spring` with stiffness 100 and damping 20 (`MOTION` in `src/constants/UI_MOTION.ts`). The one slow loop is the pulse of an active status dot: a 1200 ms cycle on a sine curve (`MOTION.pulseCycleMs`, `MOTION.pulseEasing`).
 - A status change cross-fades; it never jumps.
 - Reduce Motion comes from `useReduceMotion()` (`src/hooks/sensors/useReduceMotion.ts`), built on `AccessibilityInfo.isReduceMotionEnabled()` and the `reduceMotionChanged` event. While it is on, skip every animation and show the end state: no pulse, no press scale, no cross-fade.
 

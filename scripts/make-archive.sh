@@ -15,6 +15,16 @@ if [ -n "$(git -C "$ROOT" status --porcelain)" ]; then
   exit 1
 fi
 
+for build in BillDuck-simulator.zip billduck-release.apk; do
+  if [ ! -f "$ROOT/builds/$build" ]; then
+    echo "builds/$build is missing: put the release builds into builds/ first." >&2
+    exit 1
+  fi
+done
+if [ ! -d "$ROOT/video" ]; then
+  echo "video/ is missing: this archive goes out without the video." >&2
+fi
+
 git clone --quiet --no-hardlinks "$ROOT" "$WORK/$NAME"
 # The clone remembers where it came from; the reviewers get the history, not a path on this Mac.
 git -C "$WORK/$NAME" remote remove origin

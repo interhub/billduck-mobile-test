@@ -10,8 +10,8 @@
     "test": "jest",
     "test:integration": "jest --config jest.integration.config.js --runInBand",
     "typecheck": "tsgo --noEmit",
-    "lint": "eslint . && prettier --check .",
-    "format": "prettier --write .",
+    "lint": "eslint . && prettier --check . --ignore-path .gitignore --ignore-path .prettierignore --ignore-path .git/info/exclude",
+    "format": "prettier --write . --ignore-path .gitignore --ignore-path .prettierignore --ignore-path .git/info/exclude",
     "mock": "npm --prefix mobile-engineer-candidate-kit start",
     "fixtures:oversize": "npm --prefix mobile-engineer-candidate-kit run fixtures:oversize",
     "check": "npm run typecheck && npm run lint && npm test && npm run test:integration"

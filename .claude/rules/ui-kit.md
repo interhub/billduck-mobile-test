@@ -14,7 +14,7 @@ paths:
 
 ## TextLine
 - Use for every text; screens never render `Text` from `react-native`.
-- Variants: `display` (Unbounded SemiBold: the logo and one 2-3 word title per screen), `title` (Geist Medium), `body` (Geist Regular), `caption` (Geist Regular in `textMuted`), `money` (Geist Mono: amounts, dates, times, file sizes, revisions).
+- Variants: `display` (Unbounded SemiBold: the logo and one 2-3 word title per screen), `title` (Geist Medium), `label` (Geist Medium, smaller: row titles and section names), `body` (Geist Regular), `caption` (Geist Regular in `textMuted`), `money` (Geist Mono: amounts, dates, times, file sizes, revisions), `moneyLarge` (Geist Mono, large: the monthly total).
 - Key props: `variant`, `color` (a palette key such as `'textMuted'`, never a hex), `align`, `numberOfLines`, `accessibilityRole` (`'header'` for screen titles).
 
 ## MainButton
@@ -74,6 +74,9 @@ paths:
 
 ## Also In The Folder
 - `BillDuckLogo`: the logo as a `react-native-svg` component (`icons-and-images.md`).
+- `ScreenHeader`: the pinned top row of a pushed screen with the back action; screens pass it to `ScreenLayout` as `header`.
+- `Card`: a block with a thin border on the card background, for details, totals and payments; never nested.
+- `InfoRow`: a label over its value; the value wraps instead of being cut at a large font size (`money` for sizes, amounts, dates and ids).
 
 ## Creating New Components
 - Create one only when a pattern repeats across screens. A component for one screen lives in `src/screens/<Feature>/components/` and moves to `src/components/ui/` on the second consumer.

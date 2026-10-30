@@ -45,7 +45,8 @@ paths:
 
 ## The Operation
 - One active operation at a time, owned by `src/services/importController/` and stored by its repository; screens only read `importStore`, the controller's mirror of the operation (from `uploading` on, a mirror of what the repository has already stored).
-- Every phase change goes through the pure reducer in `src/utils/import/` (no React, no network); nothing assigns `phase` by hand. The reducer and the revision guard get their tests first.
+- Every phase change of the stored operation goes through the pure reducer in `src/utils/import/` (no React, no network); nothing assigns its `phase` by hand. The reducer and the revision guard get their tests first. The phases before sending (`validating`, `rejected`, `confirming`, `replacing_previous`) belong to the draft in `importStore`, which lives in memory only.
+- Once a deletion was asked for (`deleteKey` is stored), an answer moves the operation only to `deleting` or `deleted`; a job the server still keeps gives `delete_failed`, so the report never comes back after a restart or a silent server.
 
 ```ts
 type ImportPhase =
@@ -65,13 +66,15 @@ type ImportOperation = {
   file: {sizeBytes: number; format: 'pdf' | 'csv'};
   serverFileName: string;       // generated ASCII name for X-File-Name, e.g. statement-20261029-1432.pdf
   createdAt: string;
+  serverStatus: IMPORT_STATUS | null; // the last status the server confirmed
+  failure: ImportFailure | null; // why the import stopped, for the error text
   updatedAt: string;
 };
 
 type PendingCleanup = {idempotencyKey: string; jobId: string | null; deleteKey: string | null};
 ```
 
-- The pre-send phases (`validating`, `rejected`, `confirming`) live only in memory. From `uploading` on, the repository stores exactly two things: the `ImportOperation` and the `PendingCleanup` list. The original file name and the found payments are never stored: after a relaunch the payments are read from the server again.
+- The pre-send phases (`validating`, `rejected`, `confirming`, `replacing_previous`) live only in memory. From `uploading` on, the repository stores exactly two things: the `ImportOperation` and the `PendingCleanup` list. The original file name and the found payments are never stored: after a relaunch the payments are read from the server again.
 - A new statement can be added only when no operation is stored, or the stored one is `ready` or `failed`. While an operation is in progress or waits for a decision, "Add statement" is disabled and the caption under it says "Finish or cancel the current upload first".
 
 ## Sending

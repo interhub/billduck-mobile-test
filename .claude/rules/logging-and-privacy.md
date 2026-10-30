@@ -63,7 +63,7 @@ logger.d(`import_${phase}` as LOG_NAME);
 - The stored state is the minimum: the `ImportOperation` and the `PendingCleanup` list, with no original name and no payments (they are read from the server again after a relaunch).
 - File copies live only in `Paths.cache/imports/`, named by `operationId`, never by the original name; the picker's own copies, the iOS `tmp/<bundle id>-Inbox` copy included, are deleted (`network-and-import-policy.md`).
 - The stored operation and every temp copy are removed once the server confirms `deleted`.
-- Backups: `android.allowBackup: false`. On iOS only the minimal stored state reaches the cloud backup; the file copies live in `Caches`, which iOS never backs up.
+- Backups: `android.allowBackup: false`. On iOS nothing reaches a backup: the file copies live in `Caches`, which iOS never backs up, and AsyncStorage marks its own folder as excluded from backups by default (`RCTAsyncStorageExcludeFromBackup` stays unset).
 - The diagnostics screen and `ResponseTimeline` show only the API address and its `/health`, the mock scenario and counters, and events with status, revision, time, phase, error kind and HTTP status; never file names, file bytes, merchants or amounts.
 
 ## Secrets

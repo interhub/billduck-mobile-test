@@ -29,7 +29,7 @@ paths:
 - `userInterfaceStyle: 'automatic'` (light and dark themes; on Android this needs `expo-system-ui`), the New Architecture (always on in SDK 57; the config has no `newArchEnabled` key), Hermes (the default), `experiments.reactCompiler: true`.
 - Never set `edgeToEdgeEnabled`: prebuild no longer supports the key, and Android 16 turns edge-to-edge on by itself.
 - Keep the Expo defaults for the iOS deployment target (16.4 in SDK 57, never lower) and for the Podfile.
-- Backups: `android.allowBackup: false`. On iOS the cloud backup gets only the minimal stored state, without the file name and the payments; file copies live in `Caches`, which iOS never backs up.
+- Backups: `android.allowBackup: false`. On iOS nothing reaches a backup: the file copies live in `Caches`, which iOS never backs up, and AsyncStorage marks its own folder as excluded from backups by default (`RCTAsyncStorageExcludeFromBackup` stays unset).
 
 ## Network
 - iOS: only `ios.infoPlist.NSAppTransportSecurity.NSAllowsLocalNetworking: true` (HTTP to local addresses only). Never `NSAllowsArbitraryLoads`.
@@ -38,10 +38,11 @@ paths:
 
 ## Permissions
 - The app needs only the internet. The system file picker needs no storage permission, and iOS needs no usage description.
-- `android.blockedPermissions`: `READ_EXTERNAL_STORAGE`, `WRITE_EXTERNAL_STORAGE`, `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`, `READ_MEDIA_AUDIO`, `READ_MEDIA_VISUAL_USER_SELECTED`, `RECORD_AUDIO`, `CAMERA`. Libraries add permissions back while the manifests merge; `blockedPermissions` removes them from the merged result, deleting them from our own manifest does not.
+- `android.blockedPermissions`: `READ_EXTERNAL_STORAGE`, `WRITE_EXTERNAL_STORAGE`, `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`, `READ_MEDIA_AUDIO`, `READ_MEDIA_VISUAL_USER_SELECTED`, `RECORD_AUDIO`, `CAMERA`, `SYSTEM_ALERT_WINDOW`, `VIBRATE`, and `ACCESS_NETWORK_STATE` (`expo-image` asks for it to watch the network for remote pictures; every picture here is bundled). Libraries add permissions back while the manifests merge; `blockedPermissions` removes them from the merged result, deleting them from our own manifest does not.
 - After prebuild, read `android/app/src/main/AndroidManifest.xml`: every blocked permission carries `tools:node="remove"`. After a build, check the merged manifest under `android/app/build/intermediates/merged_manifests/`.
 
 ## Plugins In plugins/
+- `withIosSceneLifecycle.js`: declares the UIScene lifecycle with Expo's scene delegate; without it iOS 27 stops the app at launch.
 - `withLocalCleartextTraffic.js`: local-only HTTP on Android (above).
 - `withAndroidNavigationBarContrast.js`: sets `android:enforceNavigationBarContrast` to `false`, so Android 15 in edge-to-edge does not cover the navigation bar with a light scrim.
 - `withMainActivityConfigChanges.js`: sets `android:configChanges` on `MainActivity` (`keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode|smallestScreenSize|locale|layoutDirection`), so theme, keyboard, orientation, screen size and language changes do not recreate the activity; the app reads the system language again itself when it returns to the foreground. A font scale change does recreate the activity: the import operation survives because it lives in the store and the storage, not in a screen.

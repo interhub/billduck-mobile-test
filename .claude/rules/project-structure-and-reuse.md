@@ -11,20 +11,20 @@
 
 | Path | What lives there |
 |---|---|
-| `App.tsx` | Entry: providers, splash hold, fonts, the single `AppState` watcher, navigation |
+| `index.ts`, `App.tsx` | Entry (`index.ts` registers `App`): providers, splash hold, fonts, the single `AppState` watcher, navigation |
 | `app.config.ts` | The whole Expo config: identity, icons, splash, network, permissions, backups, plugins |
 | `plugins/` | Own config plugins, each safe to run on every prebuild |
 | `assets/fonts/` | Unbounded, Geist, Geist Mono TTF files and their OFL licenses |
 | `assets/images/` | `icon.png`, `adaptive-icon-foreground.png`, `splash-icon.png` |
 | `assets/illustrations/` | `bd_*.png` and `bd_*-dark.png` in `@2x` and `@3x` |
 | `mobile-engineer-candidate-kit/` | Byte-for-byte copy of the candidate kit (mock server, its tests, fixtures); never edited |
-| `scripts/` | Helpers for the reviewer and the archive (`push-fixtures.sh`, `make-archive.sh`) |
-| `src/api/importsApi/` | `importsApi.ts` (POST, by-key, GET, DELETE) and `mockControlApi.ts` (`/__test/*`) |
+| `scripts/` | Helpers for the reviewer and the archive (`push-fixtures.sh`, `save-test-results.sh`, `make-archive.sh`) |
+| `src/api/importsApi/` | `importsApi.ts` (POST, by-key, GET, DELETE), `httpRequest.ts` (timed requests), `nativeFileUploader.ts` (the streaming upload) and `mockControlApi.ts` (`/__test/*`) |
 | `src/components/ui/` | The shared UI kit, flat (`ui-kit.md`) |
 | `src/config/env.ts` | `ENV`, read from `EXPO_PUBLIC_*` |
-| `src/constants/` | Flat registries: `UI_COLORS`, `UI_SIZES`, `UI_MOTION`, `FONT_NAME`, `LIMITS`, `IMPORT_STATUS`, `MODAL_SUPPORTED_ORIENTATIONS` |
+| `src/constants/` | Flat registries: `UI_COLORS`, `UI_SIZES`, `UI_MOTION`, `FONT_NAME`, `LIMITS`, `IMPORT_STATUS`, `HTTP_STATUS`, `MODAL_SUPPORTED_ORIENTATIONS` |
 | `src/hooks/` | Hooks shared by more than one screen, in `sensors/`, `styles/`, `import/`; the app start hook `useInitialAppLoading.ts` sits at the root |
-| `src/i18n/` | `translations.ts` (every UI string in English and Russian, one file) and `useTranslation.ts` |
+| `src/i18n/` | `translations.ts` (every UI string in English and Russian, one file), `resolveSystemLanguage.ts` and `useTranslation.ts` |
 | `src/navigation/` | `RootNavigator.tsx`, `types.ts`, `hooks/useAppNavigation.ts`, `config/navRef.ts` |
 | `src/screens/<Feature>/` | `Home/`, `Import/` (confirm, status, result, payment details), `Diagnostics/`; the screen file at the root, then `components/`, `hooks/`, `logic/` |
 | `src/services/importController/` | The long-lived import controller (send, recover, cancel with cleanup, replace the previous statement, poll, delete) and the operation repository |
@@ -87,11 +87,12 @@ grep -rl "<SymbolName>" src | wc -l                     # 1 means it is dead cod
 | Registry | Owns |
 |---|---|
 | `src/constants/UI_COLORS.ts` | Light and dark palettes, `PAYMENT_DOT_COLORS` |
-| `src/constants/UI_SIZES.ts` | `SPACING`, `RADIUS`, `TOUCH_TARGET`, `ICON_SIZE`, `ILLUSTRATION` |
+| `src/constants/UI_SIZES.ts` | `SPACING`, `RADIUS`, `TOUCH_TARGET`, `ICON_SIZE`, `SCREEN_PADDING`, `BORDER_WIDTH`, `STATUS_DOT_SIZE`, `PAYMENT_DOT_SIZE`, `ILLUSTRATION`, `LOGO` |
 | `src/constants/UI_MOTION.ts` | `MOTION`: durations, easing, spring |
 | `src/constants/FONT_NAME.ts` | Font families |
 | `src/constants/LIMITS.ts` | File size limit, timeouts, recovery delays, polling and backoff intervals |
 | `src/constants/IMPORT_STATUS.ts` | Job statuses the server returns |
+| `src/constants/HTTP_STATUS.ts` | HTTP status codes the app reads or records |
 | `src/constants/MODAL_SUPPORTED_ORIENTATIONS.ts` | `MODAL_SUPPORTED_ORIENTATIONS` |
 | `src/utils/logger/LOG_NAME.ts` | `LOG_NAME` and `LOG_TYPE` |
 | `src/utils/errors/resolveErrorKind.ts` | `ERROR_KIND` and the only error classifier |
@@ -100,7 +101,7 @@ grep -rl "<SymbolName>" src | wc -l                     # 1 means it is dead cod
 
 ## Reuse Catalogue
 - Styling: `utils/styles/getResponsiveStylesHook`, `hooks/styles/useThemeColors`.
-- UI kit (`components/ui/`): `TextLine`, `MainButton`, `ScreenLayout`, `StatusBadge`, `ResponseTimeline`, `PaymentRow`, `Illustration`, `TouchableScaleView`, `BillDuckLogo`.
+- UI kit (`components/ui/`): `TextLine`, `MainButton`, `ScreenLayout`, `ScreenHeader`, `Card`, `InfoRow`, `StatusBadge`, `ResponseTimeline`, `PaymentRow`, `Illustration`, `TouchableScaleView`, `BillDuckLogo`.
 - Texts: `i18n/useTranslation`, keys from `i18n/translations`.
 - Logging and errors: `utils/logger/logger` + `LOG_NAME`, `utils/errors/resolveErrorKind`.
 - State: `createZustandStorageHook` from `utils/store/createZustandStore` - the only way to make a store.
