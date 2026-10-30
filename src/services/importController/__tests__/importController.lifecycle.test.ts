@@ -132,7 +132,8 @@ describe('import controller: restore at launch', () => {
     expect(importState()).toEqual(EMPTY_RESTORED_STATE);
     expect(logError).toHaveBeenCalledWith(LOG_NAME.error_log, {
       type: LOG_TYPE.restore_operation,
-      error_kind: ERROR_KIND.UNKNOWN
+      error_kind: ERROR_KIND.UNKNOWN,
+      http_status: null
     });
     const requestsBefore = first.backend.server.requests.length;
     await second.controller.resume();

@@ -10,7 +10,7 @@ export enum LOG_NAME {
 }
 
 export enum LOG_TYPE {
-  // First send of a statement
+  // Every POST of a statement, the first one and every repeat with the same key
   create_import = 'create_import',
   // Lookup of a job by its idempotency key after a lost answer
   recover_by_key = 'recover_by_key',
@@ -22,6 +22,10 @@ export enum LOG_TYPE {
   cleanup_upload = 'cleanup_upload',
   // Picking, copying and checking a statement file before any network
   pick_file = 'pick_file',
+  // Reading the size, the first bytes or the presence of our private copy of a statement
+  read_copy = 'read_copy',
+  // Deleting our private copy of a statement or the copies the file picker left behind
+  remove_copy = 'remove_copy',
   // Reading the stored operation at launch
   restore_operation = 'restore_operation',
   // Loading the brand fonts at launch
@@ -31,5 +35,7 @@ export enum LOG_TYPE {
   // Painting the native root view in the theme background
   system_background = 'system_background',
   // A call to the mock's test routes from the diagnostics screen
-  mock_control = 'mock_control'
+  mock_control = 'mock_control',
+  // Forgetting the import on this phone from the diagnostics screen
+  reset_all = 'reset_all'
 }

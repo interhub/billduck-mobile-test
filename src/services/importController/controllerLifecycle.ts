@@ -23,7 +23,11 @@ import {LOG_NAME, LOG_TYPE} from '@/src/utils/logger/LOG_NAME';
 export const restore = async (context: ControllerContext) => {
   const loaded = await context.repository.load();
   if (!loaded.success) {
-    logger.e(LOG_NAME.error_log, {type: LOG_TYPE.restore_operation, error_kind: loaded.error.kind});
+    logger.e(LOG_NAME.error_log, {
+      type: LOG_TYPE.restore_operation,
+      error_kind: loaded.error.kind,
+      http_status: loaded.error.httpStatus
+    });
     context.store.setState({isRestored: true});
     return;
   }
@@ -86,7 +90,7 @@ export const forgetEverything = (context: ControllerContext): Promise<void> =>
     const saved = await context.repository.save({operation: null, pendingCleanups: []});
     if (!saved.success) {
       logger.e(LOG_NAME.error_log, {
-        type: LOG_TYPE.mock_control,
+        type: LOG_TYPE.reset_all,
         error_kind: saved.error.kind,
         http_status: saved.error.httpStatus
       });
