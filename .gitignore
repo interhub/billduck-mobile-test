@@ -28,10 +28,13 @@ expo-env.d.ts
 .env
 .env*.local
 
-# build outputs and recordings
+# build outputs, recordings and the reviewer archive
 /builds/
 /video/
+/billduck-mobile-test.zip
 coverage/
+# clean copies of the QA frames before marking; the report ships the marked ones
+/docs/qa-report/raw/
 *.tsbuildinfo
 
 # logs
